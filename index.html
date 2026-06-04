@@ -1,0 +1,2993 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SADIG - Sistem Absensi Guru Digital</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Cinzel -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Cropper.js for Image Cropping -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        school: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            950: '#052e16',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @font-face {
+            font-family: 'Optimus Princeps';
+            src: url('https://db.onlinewebfonts.com/t/20e2ef5b0789758fdbba76a6cf4909bb.woff2') format('woff2'),
+                 url('https://db.onlinWebFonts.com/t/20e2ef5b0789758fdbba76a6cf4909bb.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        .font-optimus {
+            font-family: "Optimus Princeps", "Cinzel", "Georgia", serif;
+        }
+        .font-corbel {
+            font-family: "Corbel", "Segoe UI", sans-serif;
+        }
+        .font-georgia {
+            font-family: "Georgia", "Times New Roman", serif;
+        }
+        .font-times {
+            font-family: "Times New Roman", "Times", "Georgia", serif;
+        }
+        .font-cinzel {
+            font-family: "ZT Bros Oskon 90s", "Bros Oskon 90s", "Cinzel", "Georgia", serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Cropper container styling */
+        .cropper-container {
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- ============================================== -->
+    <!-- GLOBAL HEADER NAVIGATION -->
+    <!-- ============================================== -->
+    <header class="bg-gradient-to-r from-emerald-800 to-teal-800 text-white shadow-md sticky top-0 z-40 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="app-logo-container" class="w-[45px] h-[45px] rounded-full border-2 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden p-2">
+                    <i id="app-logo-fallback" class="fa-solid fa-graduation-cap text-2xl text-emerald-300"></i>
+                    <img id="app-logo" src="" class="hidden w-full h-full object-cover rounded-[inherit]" onerror="this.classList.add('hidden'); document.getElementById('app-logo-fallback').classList.remove('hidden');">
+                </div>
+                <div>
+                    <h1 id="app-title-text" class="font-times font-bold text-sm sm:text-base tracking-wide leading-tight">Sadig</h1>
+                    <p id="app-subtitle-text" class="font-cinzel text-[10px] sm:text-xs text-emerald-200/80">Pondok Pesantren Tholabuddin</p>
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center gap-3">
+                <!-- Hijri Calendar Widget -->
+                <div class="hidden md:flex flex-col items-end bg-emerald-900/40 border border-white/10 rounded-xl px-3 py-1 text-right text-[10px] font-medium leading-tight">
+                    <span id="header-hijri-date" class="text-emerald-300"></span>
+                    <span id="header-gregorian-date" class="text-white/70 text-[9px]"></span>
+                </div>
+
+                <!-- Session Logged In Badge -->
+                <div id="session-user-badge" class="hidden flex items-center gap-2 bg-white/10 border border-white/10 rounded-full pl-2 pr-4 py-1">
+                    <img id="session-user-photo" src="https://placehold.co/80x80/cbd5e1/64748b?text=..." class="w-6 h-6 rounded-full border border-white/20 object-cover">
+                    <div class="text-left">
+                        <p id="session-user-name" class="text-[10px] font-bold leading-none max-w-[100px] truncate">Admin</p>
+                        <p id="session-user-role" class="text-[8px] text-emerald-300 font-semibold uppercase tracking-wider leading-none mt-0.5">ADMIN</p>
+                    </div>
+                </div>
+
+                <!-- Global Action Buttons -->
+                <div class="flex items-center gap-1.5">
+                    <button id="btn-setting-trigger" onclick="switchView('admin'); setTimeout(scrollToSettings, 200);" class="hidden bg-emerald-700/50 hover:bg-emerald-600/60 text-emerald-100 hover:text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1">
+                        <i class="fa-solid fa-gears text-[10px]"></i>
+                        <span class="hidden sm:inline">Pengaturan</span>
+                    </button>
+                    <button id="btn-logout" onclick="handleLogout()" class="hidden bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 shadow-md shadow-rose-900/10">
+                        <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        <span class="hidden sm:inline">Keluar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+        <!-- ============================================== -->
+        <!-- VIEW 1: LOGIN PAGE -->
+        <!-- ============================================== -->
+        <section id="view-login" class="hidden max-w-md mx-auto my-12 transition-all duration-300">
+            <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+                <!-- Header Card -->
+                <div class="bg-gradient-to-r from-emerald-700 to-emerald-800 text-white px-8 py-10 text-center relative overflow-hidden select-none">
+                    <!-- Watermark Centered & Small -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl sm:text-3xl font-black tracking-[0.25em] text-emerald-600/30 uppercase z-0 font-sans whitespace-nowrap">
+                        THOLABUDDIN
+                    </div>
+                    
+                    <div class="relative z-10 flex flex-col items-center gap-3">
+                        <div id="login-logo-container" class="w-[74px] h-[74px] rounded-full bg-white/15 border-2 border-white/20 flex items-center justify-center overflow-hidden p-0">
+                            <i id="login-logo-fallback" class="fa-solid fa-badge-check text-3xl text-emerald-300"></i>
+                            <img id="login-logo" src="" class="hidden w-full h-full object-cover rounded-[inherit]" onerror="this.classList.add('hidden'); document.getElementById('login-logo-fallback').classList.remove('hidden');">
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-extrabold tracking-wide">Log in</h2>
+                            <p class="font-cinzel text-[10px] sm:text-xs text-emerald-100/90 mt-1.5 leading-relaxed tracking-wider uppercase">Sistem Absensi Digital Guru Pondok Pesantren Tholabuddin</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs Peran -->
+                <div class="flex border-b border-slate-100">
+                    <button onclick="switchLoginTab('guru')" id="tab-login-guru" class="w-1/2 py-3 text-sm font-bold text-center border-b-2 border-emerald-600 text-emerald-600 transition-all duration-200">
+                        <i class="fa-solid fa-user-tie mr-1.5"></i>Guru
+                    </button>
+                    <button onclick="switchLoginTab('admin')" id="tab-login-admin" class="w-1/2 py-3 text-sm font-bold text-center border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all duration-200">
+                        <i class="fa-solid fa-user-gear mr-1.5"></i>Admin
+                    </button>
+                </div>
+
+                <!-- Form Login -->
+                <form id="form-login" onsubmit="handleLoginSubmit(event)" class="p-8 space-y-5">
+                    <!-- Username / NIP Input -->
+                    <div class="space-y-1.5">
+                        <label id="label-username" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">NIP GURU</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <i class="fa-solid fa-user text-sm"></i>
+                            </span>
+                            <input type="text" id="login-username" required placeholder="Masukkan NIP anda" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Password Input -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">PASSWORD AKSES</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <i class="fa-solid fa-lock text-sm"></i>
+                            </span>
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            <button type="button" onclick="togglePasswordVisibility('login-password')" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
+                                <i class="fa-solid fa-eye text-sm" id="eye-icon-login-password"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-all duration-200 shadow-md shadow-emerald-950/10 hover:shadow-emerald-950/20 active:scale-[0.98] mt-4">
+                        Masuk Sistem <i class="fa-solid fa-arrow-right-to-bracket ml-1"></i>
+                    </button>
+                </form>
+
+                <!-- Demo Account Help Box -->
+                <div class="px-8 pb-8">
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs">
+                        <span class="font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                            <i class="fa-solid fa-circle-info text-amber-500"></i> Akun Demo Uji Coba:
+                        </span>
+                        <div class="space-y-1 text-slate-500 leading-relaxed">
+                            <p>🔑 <strong>Admin:</strong> Username: <code class="bg-white px-1.5 py-0.5 rounded border">admin</code> | Sandi: <code class="bg-white px-1.5 py-0.5 rounded border">admin123</code></p>
+                            <p>🔑 <strong>Guru:</strong> Pilih tab "Guru", isi NIP terdaftar di database (Contoh: <code class="bg-white px-1.5 py-0.5 rounded border">198104122005011002</code>) | Sandi: <code class="bg-white px-1.5 py-0.5 rounded border">guru123</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: GURU PORTAL (PRESENSI) -->
+        <!-- ============================================== -->
+        <section id="view-guru" class="hidden space-y-6 max-w-4xl mx-auto transition-all duration-300">
+            <!-- Profil Singkat Guru Aktif -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <img id="guru-profile-pic" src="https://placehold.co/120x120/cbd5e1/64748b?text=Foto+Guru" class="w-16 h-16 rounded-full border-2 border-emerald-500 object-cover shadow">
+                    <div>
+                        <span class="bg-emerald-50 text-emerald-700 border border-emerald-200/50 text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full uppercase">Ustadz</span>
+                        <h2 id="guru-profile-name" class="text-lg font-black text-slate-800 leading-tight mt-1">Nama Guru</h2>
+                        <p id="guru-profile-nip" class="text-xs text-slate-400 mt-0.5">NIP: -</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-end text-right bg-slate-50 border border-slate-100 rounded-2xl p-3">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hari Masuk</span>
+                    <span id="guru-today-day" class="text-xs sm:text-sm font-extrabold text-emerald-700 mt-0.5">Hari ...</span>
+                </div>
+            </div>
+
+            <!-- Form Absensi Guru -->
+            <div class="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden relative">
+                <div class="bg-gradient-to-r from-emerald-800 to-teal-800 px-6 py-5 text-white flex justify-between items-center">
+                    <div>
+                        <h3 class="font-extrabold text-sm sm:text-base">Absensi Guru Pondok Pesantren Tholabuddin 1447-1448 H.</h3>
+                        <p class="text-[10px] sm:text-xs text-emerald-100/70 mt-0.5">Lakukan presensi mengajar masuk pagi atau masuk sore di bawah ini</p>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <form id="form-absen" onsubmit="handleAbsenSubmit(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Dropdown Nama Guru -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Guru</label>
+                                <select id="absen-guru-id" onchange="handleAbsenTeacherSelect(this.value)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                    <option value="">-- Pilih Guru --</option>
+                                </select>
+                            </div>
+
+                            <!-- Dropdown Status Kehadiran -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Status Kehadiran</label>
+                                <select id="absen-status-hadir" onchange="handleStatusHadirChange(this.value)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                    <option value="Hadir jam ke 1&2">Hadir jam ke 1&2</option>
+                                    <option value="Hadir jam ke 1">Hadir jam ke 1</option>
+                                    <option value="Hadir jam ke 2">Hadir jam ke 2</option>
+                                    <option value="Piket jam ke 1&2">Piket jam ke 1&2</option>
+                                    <option value="Piket jam ke 1">Piket jam ke 1</option>
+                                    <option value="Piket jam ke 2">Piket jam ke 2</option>
+                                    <option value="Izin (sakit)">Izin (sakit)</option>
+                                    <option value="Izin (ada kepentingan)">Izin (ada kepentingan)</option>
+                                    <option value="Izin (ke luar kota)">Izin (ke luar kota)</option>
+                                    <option value="Izin (ke luar negeri)">Izin (ke luar negeri)</option>
+                                    <option value="Izin lainnya (tulis)">Izin lainnya (tulis)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Kolom Izin Lainnya (Muncul Dinamis) -->
+                        <div id="wrapper-izin-lainnya" class="hidden transition-all duration-300">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tuliskan Alasan Izin Lainnya</label>
+                            <input type="text" id="absen-izin-manual" placeholder="Ketik alasan izin anda secara lengkap..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Kolom Kelas Manual -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mengajar di Kelas</label>
+                                <input type="text" id="absen-kelas" required placeholder="Contoh: X-A, XI MIPA 2, dll" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+
+                            <!-- Kolom Mata Pelajaran Manual -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mata Pelajaran</label>
+                                <input type="text" id="absen-mapel" required placeholder="Contoh: Fiqih, Bahasa Arab, Kimia, dll" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                        </div>
+
+                        <!-- Panel Eksekusi & Sesi Info -->
+                        <div class="pt-4 border-t border-slate-100 flex flex-col items-center gap-4">
+                            <!-- Informasi Jadwal Masuk Aktif -->
+                            <div class="text-xs text-slate-500 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl text-center w-full max-w-md">
+                                <span class="font-extrabold text-emerald-700 block mb-1">Jadwal Masuk:</span>
+                                <div class="grid grid-cols-2 gap-2 text-[10px]">
+                                    <div>🌅 <strong>Pagi:</strong> Sesi I: 07:30 - 09:00<br>Sesi II: 09:30 - 11:00</div>
+                                    <div>🌇 <strong>Sore:</strong> Sesi I: 13:30 - 14:45<br>Sesi II: 15:15 - 16:30</div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-3 w-full max-w-sm">
+                                <!-- Tombol Absen MASUK (Utama) -->
+                                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-6 rounded-2xl text-sm transition-all duration-200 shadow-md shadow-emerald-950/10 active:scale-[0.98] flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-fingerprint text-lg"></i>
+                                    Kirim Absen MASUK
+                                </button>
+
+                                <!-- Tombol Absen PULANG (Tengah Bawah) -->
+                                <button type="button" onclick="handleAbsenPulangClick()" class="mx-auto w-48 bg-rose-600 hover:bg-rose-700 text-white font-bold py-1.5 px-3 rounded-full text-[10px] transition-all duration-200 shadow-sm shadow-rose-950/10 active:scale-[0.98] flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-right-from-bracket text-[9px]"></i>
+                                    Kirim Absen PULANG
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Log Kehadiran Guru Hari Ini -->
+            <div class="bg-white rounded-3xl shadow-md border border-slate-100 p-6">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800 tracking-wide uppercase">Log Kehadiran Hari Ini</h4>
+                        <p class="text-xs text-slate-400">Daftar riwayat aktivitas presensi anda pada hari ini</p>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Riwayat</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs font-bold text-slate-400 uppercase border-b border-slate-100 bg-slate-50/50 rounded-lg">
+                                <th class="p-3">Waktu Log</th>
+                                <th class="p-3">Sesi Absen</th>
+                                <th class="p-3">Keterangan Mengajar / Izin</th>
+                                <th class="p-3 text-center">Status Kehadiran</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-history-self" class="divide-y divide-slate-100">
+                            <!-- Diisi Dinamis oleh JS -->
+                            <tr>
+                                <td colspan="4" class="p-6 text-center text-slate-400 text-xs">Belum ada aktivitas presensi hari ini.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 3: ADMIN PANEL -->
+        <!-- ============================================== -->
+        <section id="view-admin" class="hidden space-y-6 transition-all duration-300">
+            <!-- Statistik Absensi Real-time -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Donut Chart Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100 flex flex-col justify-between">
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800 tracking-wide uppercase mb-1">Rasio Kehadiran Hari Ini</h4>
+                        <p class="text-xs text-slate-400 mb-4">Grafik pembagian status mengajar dan ketidakhadiran</p>
+                    </div>
+                    <div class="relative w-40 h-40 mx-auto">
+                        <canvas id="chart-absensi"></canvas>
+                    </div>
+                </div>
+
+                <!-- Info Cards -->
+                <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-3xl p-5 shadow border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-bold tracking-wider uppercase">Guru Hadir Hari Ini</span>
+                            <h3 id="stat-hadir-count" class="text-2xl font-black text-slate-800 mt-1">0 / 0</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Sudah mengabsen masuk mengajar</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-5 shadow border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow">
+                            <i class="fa-solid fa-person-military-pointing"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-bold tracking-wider uppercase">Guru Izin Hari Ini</span>
+                            <h3 id="stat-izin-count" class="text-2xl font-black text-slate-800 mt-1">0</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Izin sakit, tugas, atau urusan lain</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-5 shadow border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow">
+                            <i class="fa-solid fa-user-xmark"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-bold tracking-wider uppercase">Terlambat / Tak Hadir</span>
+                            <h3 id="stat-late-count" class="text-2xl font-black text-slate-800 mt-1">0</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Absen masuk melampaui batas jam pulang</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-5 shadow border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shadow">
+                            <i class="fa-solid fa-clipboard-user"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-bold tracking-wider uppercase">Total Staf Pengajar</span>
+                            <h3 id="stat-total-teachers" class="text-2xl font-black text-slate-800 mt-1">0</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Jumlah guru terdaftar di database</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bagian Laporan Absensi Harian, Mingguan, Bulanan -->
+            <div class="bg-white rounded-3xl shadow-md border border-slate-100 overflow-hidden">
+                <div class="border-b border-slate-100 px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800 tracking-wide uppercase">Laporan Aktivitas Presensi</h4>
+                        <p class="text-xs text-slate-400">Laporan log lengkap yang divalidasi dengan format kalender Hijriyah | <span class="text-emerald-700 font-bold">Total Tatap Muka Terfilter: <span id="total-tm-filtered" class="font-mono bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">0</span> TM</span></p>
+                    </div>
+
+                    <!-- Dropdown Filter Laporan & Tombol Ekspor -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <select id="filter-log-type" onchange="renderLogPresensi()" class="bg-slate-50 border border-slate-200 text-slate-600 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                            <option value="today">Hari Ini (Harian)</option>
+                            <option value="yesterday">Kemarin</option>
+                            <option value="weekly">Minggu Ini (7 Hari Terakhir)</option>
+                            <option value="monthly">Bulan Ini (Bulan Hijriyah Aktif)</option>
+                            <option value="all">Semua Riwayat</option>
+                            <!-- Filter Bulanan Hijriyah Spesifik -->
+                            <option value="h-1">Muharram</option>
+                            <option value="h-2">Shofar</option>
+                            <option value="h-3">Robiul Awal</option>
+                            <option value="h-4">Robiul Akhir</option>
+                            <option value="h-5">Jumadil Ula</option>
+                            <option value="h-6">Jumadil Akhiroh</option>
+                            <option value="h-7">Rojab</option>
+                            <option value="h-8">Sya'ban</option>
+                            <option value="h-9">Ramadhan</option>
+                            <option value="h-10">Syawal</option>
+                            <option value="h-11">Dzulqo'dah</option>
+                            <option value="h-12">Dzulhijjah</option>
+                        </select>
+                        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-file-excel text-xs"></i> Ekspor CSV (Excel)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto p-4">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs font-bold text-slate-400 uppercase border-b border-slate-100 bg-slate-50/50 rounded-lg">
+                                <th class="p-3 pr-16">Guru / NIP</th>
+                                <th class="p-3">Waktu Log & Tanggal (Masehi / Hijriyah)</th>
+                                <th class="p-3">Kelas & Mapel</th>
+                                <th class="p-3">Sesi Kerja</th>
+                                <th class="p-3 text-center">Tatap Muka</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-admin-history" class="divide-y divide-slate-100">
+                            <!-- Diisi Dinamis oleh JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab Rekapitulasi Jam Masuk (Mingguan, Bulanan & Tahunan Hijriyah) -->
+            <div class="bg-white rounded-3xl shadow-md border border-slate-100 overflow-hidden">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between bg-slate-50/50">
+                    <div>
+                        <h4 id="report-title" class="font-black text-sm text-slate-800 tracking-wide uppercase">Akumulasi Jam Masuk Guru</h4>
+                        <p id="report-subtitle" class="text-xs text-slate-400">Total perhitungan waktu mengajar masuk pagi & masuk sore</p>
+                    </div>
+                    <!-- Tab Switcher Laporan -->
+                    <div class="flex bg-slate-200/60 p-1 rounded-xl">
+                        <button onclick="switchReportTab('weekly')" id="tab-rep-weekly" class="px-3 py-1 text-xs font-bold rounded-lg bg-white text-emerald-700 shadow-sm transition">Mingguan</button>
+                        <button onclick="switchReportTab('monthly')" id="tab-rep-monthly" class="px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition">Bulanan Hijriyah</button>
+                        <button onclick="switchReportTab('yearly')" id="tab-rep-yearly" class="px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition">Tahunan Hijriyah</button>
+                    </div>
+                </div>
+
+                <!-- Konten Tab 1: Mingguan -->
+                <div id="section-rep-weekly" class="p-6 overflow-x-auto">
+                    <div class="mb-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-calendar-week text-emerald-600 mr-1"></i> Periode Pekan Ini (Senin - Minggu, Kecuali Jumat)
+                    </div>
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs font-bold text-slate-400 bg-slate-50 border-b border-slate-100">
+                                <th class="p-3 rounded-l-xl">Nama Guru</th>
+                                <th class="p-3 text-center">Sen</th>
+                                <th class="p-3 text-center">Sel</th>
+                                <th class="p-3 text-center">Rab</th>
+                                <th class="p-3 text-center">Kam</th>
+                                <th class="p-3 text-center">Sab</th>
+                                <th class="p-3 text-center">Min</th>
+                                <th class="p-3 text-center rounded-r-xl">Total Jam Masuk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-weekly-hours" class="divide-y divide-slate-100">
+                            <!-- Diisi dinamis -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Konten Tab 2: Bulanan Hijriyah -->
+                <div id="section-rep-monthly" class="hidden p-6 space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            <i class="fa-solid fa-calendar-days text-emerald-600 mr-1"></i> 
+                            <span id="monthly-period-label">Periode Hijriyah: 1 s/d Akhir Bulan</span>
+                        </div>
+                        <span class="text-xs text-slate-500">Target Ideal: <strong>140 Jam Masuk</strong> / Bulan</span>
+                    </div>
+
+                    <div id="wrapper-monthly-hours" class="space-y-4">
+                        <!-- Diisi dinamis -->
+                    </div>
+                </div>
+
+                <!-- Konten Tab 3: Tahunan Hijriyah -->
+                <div id="section-rep-yearly" class="hidden p-6 overflow-x-auto">
+                    <div class="mb-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-calendar-days text-emerald-600 mr-1"></i> Rekapitulasi Jam Masuk Per Bulan Hijriyah (Tahun <span id="yearly-hijri-label">1447</span> H)
+                    </div>
+                    <table class="w-full text-sm text-left border-collapse min-w-[1000px]">
+                        <thead>
+                            <tr class="text-xs font-bold text-slate-400 bg-slate-50 border-b border-slate-100">
+                                <th class="p-3 rounded-l-xl">Nama Guru</th>
+                                <th class="p-3 text-center" title="Muharram">Muh</th>
+                                <th class="p-3 text-center" title="Safar">Saf</th>
+                                <th class="p-3 text-center" title="Rabi'ul Awal">RAw</th>
+                                <th class="p-3 text-center" title="Rabi'ul Akhir">RAk</th>
+                                <th class="p-3 text-center" title="Jumadil Ula">JUla</th>
+                                <th class="p-3 text-center" title="Jumadil Akhira">JAkh</th>
+                                <th class="p-3 text-center" title="Rajab">Raj</th>
+                                <th class="p-3 text-center" title="Sya'ban">Sya</th>
+                                <th class="p-3 text-center" title="Ramadhan">Ram</th>
+                                <th class="p-3 text-center" title="Syawal">Syw</th>
+                                <th class="p-3 text-center" title="Dzulqa'dah">DzQ</th>
+                                <th class="p-3 text-center" title="Dzulhijjah">DzH</th>
+                                <th class="p-3 text-center rounded-r-xl">Total Setahun</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-yearly-hours" class="divide-y divide-slate-100">
+                            <!-- Diisi dinamis -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- PAPAN JADWAL MENGAJAR HARI INI (REAKTIF DINAMIS) -->
+            <!-- ============================================== -->
+            <div class="bg-white rounded-3xl shadow-md border border-slate-100 p-6">
+                <div class="border-b border-slate-100 pb-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800 tracking-wide uppercase">Papan Jadwal Mengajar Hari Ini</h4>
+                        <p class="text-xs text-slate-400">Daftar ustadz/guru yang terjadwal aktif mengajar pada hari yang sedang berjalan</p>
+                    </div>
+                    <!-- Label Hari Aktif -->
+                    <div class="bg-emerald-50 border border-emerald-200/50 text-emerald-800 px-3.5 py-1.5 rounded-2xl text-xs font-black tracking-wide flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-calendar-day text-emerald-600"></i>
+                        <span id="current-schedule-day-label" class="uppercase">Hari ...</span>
+                    </div>
+                </div>
+                
+                <div id="schedule-board-today" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Diisi dinamis oleh JS -->
+                </div>
+            </div>
+
+            <!-- Kelola Database Guru -->
+            <div class="bg-white rounded-3xl shadow-md border border-slate-100 p-6">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800 tracking-wide uppercase">Kelola Database Guru</h4>
+                        <p class="text-xs text-slate-400">Pengelolaan profil pengajar, jadwal mengajar harian, dan password akses</p>
+                    </div>
+                    <button onclick="openModalGuru()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow transition">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Tambah Guru
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs font-bold text-slate-400 uppercase border-b border-slate-100 bg-slate-50/50 rounded-lg">
+                                <th class="p-3">Pasfoto / Guru</th>
+                                <th class="p-3">NIP</th>
+                                <th class="p-3">Jabatan</th>
+                                <th class="p-3">Bawaan Mengajar (Kelas & Mapel)</th>
+                                <th class="p-3">Password Akses (Edit Langsung)</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-database-guru" class="divide-y divide-slate-100">
+                            <!-- Diisi dinamis oleh JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pengaturan Aplikasi & CMS (Settings) -->
+            <div id="section-admin-settings" class="bg-white rounded-3xl shadow-md border border-slate-100 p-6 scroll-mt-20">
+                <div class="border-b border-slate-100 pb-4 mb-5">
+                    <h4 class="font-black text-sm text-slate-800 tracking-wide uppercase">Pengaturan Aplikasi SADIG</h4>
+                    <p class="text-xs text-slate-400">Kustomisasi penamaan instansi pesantren, keamanan akses administrator, gambar logo, dan notifikasi</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- CMS Logo, Teks Instansi, dan Integrasi Telegram -->
+                    <div class="space-y-5">
+                        <h5 class="text-xs font-bold text-emerald-700 uppercase tracking-wider border-b border-emerald-50/80 pb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders"></i> Identitas & Kustomisasi Logo
+                        </h5>
+
+                        <!-- Logo Upload Row -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <!-- 1. Logo Header Utama -->
+                            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center text-center">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Logo Header Utama</span>
+                                <div id="setting-logo-header-preview-container" class="w-20 h-20 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden p-0 mb-3 shadow">
+                                    <i id="setting-logo-header-preview-fallback" class="fa-solid fa-graduation-cap text-3xl text-slate-400"></i>
+                                    <img id="setting-logo-header-preview" class="hidden w-full h-full object-cover rounded-[inherit]">
+                                </div>
+                                <div class="flex flex-col gap-2 w-full">
+                                    <label class="bg-white border border-slate-200 hover:border-emerald-500 text-slate-600 hover:text-emerald-700 font-semibold px-2.5 py-1.5 rounded-lg text-[10px] cursor-pointer transition shadow-sm">
+                                        <i class="fa-solid fa-image mr-1"></i> Unggah PNG/JPG
+                                        <input type="file" id="setting-logo-header-input" accept=".png, .jpg, .jpeg" class="hidden" onchange="handleLogoUpload(this, 'header')">
+                                    </label>
+                                    <button onclick="resetLogo('header')" class="text-rose-600 hover:text-rose-700 font-bold text-[10px] py-1 transition">
+                                        <i class="fa-solid fa-trash-can mr-1"></i> Reset Logo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 2. Logo Halaman Login -->
+                            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center text-center">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Logo Halaman Log in</span>
+                                <div id="setting-logo-login-preview-container" class="w-20 h-20 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden p-0 mb-3 shadow">
+                                    <i id="setting-logo-login-preview-fallback" class="fa-solid fa-shield-halved text-3xl text-slate-400"></i>
+                                    <img id="setting-logo-login-preview" class="hidden w-full h-full object-cover rounded-[inherit]">
+                                </div>
+                                <div class="flex flex-col gap-2 w-full">
+                                    <label class="bg-white border border-slate-200 hover:border-emerald-500 text-slate-600 hover:text-emerald-700 font-semibold px-2.5 py-1.5 rounded-lg text-[10px] cursor-pointer transition shadow-sm">
+                                        <i class="fa-solid fa-image mr-1"></i> Unggah PNG/JPG
+                                        <input type="file" id="setting-logo-login-input" accept=".png, .jpg, .jpeg" class="hidden" onchange="handleLogoUpload(this, 'login')">
+                                    </label>
+                                    <button onclick="resetLogo('login')" class="text-rose-600 hover:text-rose-700 font-bold text-[10px] py-1 transition">
+                                        <i class="fa-solid fa-trash-can mr-1"></i> Reset Logo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CMS Text Instansi -->
+                        <div class="space-y-4 pt-2">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Judul Aplikasi Utama (Singkatan)</label>
+                                <input type="text" id="setting-app-title" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Sub-judul Instansi Sekolah</label>
+                                <input type="text" id="setting-app-subtitle" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-corbel focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                            <button onclick="saveCMSIdentity()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition active:scale-95">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Identitas Instansi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ganti Password Admin & Pengaturan Telegram -->
+                    <div class="space-y-6 border-t lg:border-t-0 lg:border-l border-slate-100 pt-6 lg:pt-0 lg:pl-8">
+                        <!-- Ubah Password Admin -->
+                        <div class="space-y-4">
+                            <h5 class="text-xs font-bold text-emerald-700 uppercase tracking-wider border-b border-emerald-50/80 pb-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-lock"></i> Ubah Password Administrator
+                            </h5>
+
+                            <form id="form-settings-pw-admin" onsubmit="handleSettingsPasswordAdmin(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password Admin Lama</label>
+                                    <div class="relative">
+                                        <input type="password" id="setting-admin-pw-old" required placeholder="Sandi saat ini" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-3 pr-10 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                        <button type="button" onclick="togglePasswordVisibility('setting-admin-pw-old')" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
+                                            <i class="fa-solid fa-eye text-xs" id="eye-icon-setting-admin-pw-old"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password Admin Baru</label>
+                                        <div class="relative">
+                                            <input type="password" id="setting-admin-pw-new" required placeholder="Sandi baru" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-3 pr-10 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                            <button type="button" onclick="togglePasswordVisibility('setting-admin-pw-new')" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
+                                                <i class="fa-solid fa-eye text-xs" id="eye-icon-setting-admin-pw-new"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Konfirmasi Password Baru</label>
+                                        <div class="relative">
+                                            <input type="password" id="setting-admin-pw-confirm" required placeholder="Ulangi sandi baru" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-3 pr-10 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                            <button type="button" onclick="togglePasswordVisibility('setting-admin-pw-confirm')" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
+                                                <i class="fa-solid fa-eye text-xs" id="eye-icon-setting-admin-pw-confirm"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition active:scale-95 flex items-center gap-1">
+                                    <i class="fa-solid fa-key"></i> Perbarui Password Admin
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Integrasi Notifikasi Telegram -->
+                        <div class="space-y-4 pt-4 border-t border-slate-100">
+                            <h5 class="text-xs font-bold text-emerald-700 uppercase tracking-wider border-b border-emerald-50/80 pb-2 flex items-center gap-1.5">
+                                <i class="fa-brands fa-telegram text-base text-sky-500"></i> Integrasi Notifikasi Telegram Admin
+                            </h5>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">
+                                Kirimkan laporan absensi guru otomatis (masuk, pulang, & izin) langsung ke grup atau chat pribadi Telegram Anda.
+                            </p>
+
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <span class="text-xs font-bold text-slate-600">Status Notifikasi</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-telegram-enable" onchange="toggleTelegramStatus()" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
+                                </div>
+
+                                <div id="wrapper-telegram-config" class="space-y-3 hidden">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Bot Token API</label>
+                                        <input type="password" id="setting-telegram-token" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsT" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Chat ID Penerima</label>
+                                        <input type="text" id="setting-telegram-chatid" placeholder="Contoh: -100123456789 atau 987654321" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="saveTelegramConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow transition active:scale-95">
+                                            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Setelan
+                                        </button>
+                                        <button onclick="testTelegramNotification()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow transition active:scale-95">
+                                            <i class="fa-solid fa-paper-plane mr-1"></i> Uji Coba Kirim
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Sistem -->
+    <footer class="bg-slate-900 text-slate-400/60 text-[10px] py-4 text-center border-t border-slate-800">
+        <p>© 2026 SADIG. Pondok Pesantren Tholabuddin. All Rights Reserved.</p>
+    </footer>
+
+    <!-- ============================================== -->
+    <!-- DIALOG BOXES & POP-UP MODALS -->
+    <!-- ============================================== -->
+    
+    <!-- 1. Modal Crop Logo (Rasio 1:1) -->
+    <div id="modal-crop-logo" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex justify-between items-center">
+                <h4 class="font-extrabold text-sm"><i class="fa-solid fa-crop mr-1.5"></i>Sesuaikan Bentuk Logo</h4>
+                <button onclick="closeCropModal()" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 flex-grow flex items-center justify-center bg-slate-100">
+                <div class="w-full max-w-xs aspect-square bg-slate-200 rounded-2xl overflow-hidden shadow-inner">
+                    <img id="crop-image-target" src="" class="max-w-full">
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button onclick="closeCropModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition">Batal</button>
+                <button onclick="executeCrop()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow">Potong & Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Modal Tambah/Edit Guru -->
+    <div id="modal-guru" class="hidden fixed inset-0 z-50 bg-slate-900/60 overflow-y-auto flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden border border-slate-100 my-8">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex justify-between items-center">
+                <h4 id="modal-guru-title" class="font-extrabold text-sm">Tambah Data Guru</h4>
+                <button onclick="closeModalGuru()" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="form-guru" onsubmit="handleGuruSubmit(event)" class="p-6 space-y-5">
+                <input type="hidden" id="form-guru-id">
+
+                <!-- Informasi Dasar & Pasfoto -->
+                <div class="flex flex-col sm:flex-row gap-6 items-center">
+                    <!-- Unggah Pasfoto Guru -->
+                    <div class="flex flex-col items-center text-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pasfoto Guru</span>
+                        <div class="w-24 h-24 rounded-full border-2 border-emerald-500 bg-slate-50 flex items-center justify-center overflow-hidden p-0 shadow relative">
+                            <i id="form-guru-pic-fallback" class="fa-solid fa-user-tie text-4xl text-slate-300"></i>
+                            <img id="form-guru-pic-preview" class="hidden w-full h-full object-cover">
+                        </div>
+                        <label class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-xl text-[10px] cursor-pointer transition shadow-md">
+                            <i class="fa-solid fa-camera mr-1"></i> Unggah Foto
+                            <input type="file" id="form-guru-pic-input" accept=".png, .jpg, .jpeg" class="hidden" onchange="handleGuruPhotoUpload(this)">
+                        </label>
+                    </div>
+
+                    <!-- Detail Utama -->
+                    <div class="flex-grow w-full space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Lengkap Guru</label>
+                                <input type="text" id="form-guru-name" required placeholder="Contoh: Drs. Budi Santoso" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nomor Induk Pegawai (NIP)</label>
+                                <input type="text" id="form-guru-nip" required placeholder="Masukkan NIP" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Jabatan / Staf</label>
+                                <input type="text" id="form-guru-role" required placeholder="Contoh: Guru Utama, Guru Madya" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Sandi Akses Masuk</label>
+                                <input type="text" id="form-guru-password" required placeholder="Contoh: guru123" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bawaan Mengajar -->
+                <div class="border-t border-slate-100 pt-4 space-y-4">
+                    <h5 class="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-chalkboard-user"></i> Data Bawaan Mengajar (Utama)
+                    </h5>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kelas Utama Bawaan</label>
+                            <input type="text" id="form-guru-class-default" required placeholder="Contoh: X-A" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mata Pelajaran Utama Bawaan</label>
+                            <input type="text" id="form-guru-subject-default" required placeholder="Contoh: Fiqih" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jadwal Kelas & Mapel Harian -->
+                <div class="border-t border-slate-100 pt-4 space-y-3">
+                    <h5 class="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-days"></i> Jadwal Kelas & Mapel Harian (Senin - Minggu, Kecuali Jumat)
+                    </h5>
+                    <p class="text-[10px] text-slate-400">Tentukan jadwal kelas & pelajaran bawaan per hari. Jika tidak diisi pada hari tertentu, sistem akan menggunakan data utama bawaan diatas.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <!-- Senin -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Senin</span>
+                            <input type="text" id="sch-senin-class" placeholder="Kelas" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="sch-senin-subject" placeholder="Mata Pelajaran" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <!-- Selasa -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Selasa</span>
+                            <input type="text" id="sch-selasa-class" placeholder="Kelas" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="sch-selasa-subject" placeholder="Mata Pelajaran" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <!-- Rabu -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Rabu</span>
+                            <input type="text" id="sch-rabu-class" placeholder="Kelas" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="sch-rabu-subject" placeholder="Mata Pelajaran" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <!-- Kamis -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Kamis</span>
+                            <input type="text" id="sch-kamis-class" placeholder="Kelas" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="sch-kamis-subject" placeholder="Mata Pelajaran" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <!-- Sabtu -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Sabtu</span>
+                            <input type="text" id="sch-sabtu-class" placeholder="Kelas" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="sch-sabtu-subject" placeholder="Mata Pelajaran" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <!-- Minggu -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Minggu</span>
+                            <input type="text" id="sch-minggu-class" placeholder="Kelas" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="sch-minggu-subject" placeholder="Mata Pelajaran" class="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tombol Eksekusi Modal -->
+                <div class="border-t border-slate-100 pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModalGuru()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition">Batal</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Modal Edit Log Harian (Oleh Admin) -->
+    <div id="modal-edit-log" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex justify-between items-center">
+                <h4 class="font-extrabold text-sm"><i class="fa-solid fa-pen-to-square mr-1.5"></i>Edit Log Presensi</h4>
+                <button onclick="closeEditLogModal()" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-edit-log" onsubmit="handleLogEditSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="edit-log-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Guru</label>
+                    <input type="text" id="edit-log-teacher-name" disabled class="w-full bg-slate-100 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mengajar di Kelas</label>
+                    <input type="text" id="edit-log-class" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mata Pelajaran</label>
+                    <input type="text" id="edit-log-subject" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeEditLogModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition">Batal</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Modal Konfirmasi Hapus Data -->
+    <div id="modal-confirm-delete" class="hidden fixed inset-0 z-[100] bg-slate-900/60 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-100 p-6 text-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h4 class="font-extrabold text-slate-800 text-sm">Hapus Data Guru?</h4>
+                <p id="confirm-delete-message" class="text-xs text-slate-400 mt-1 leading-relaxed">Tindakan ini tidak bisa dibatalkan. Guru beserta seluruh riwayat absensinya akan dihapus permanen.</p>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeConfirmDelete()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">Batal</button>
+                <button id="btn-confirm-delete-action" class="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">Hapus Permanen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 left-5 z-[200] space-y-2 max-w-xs"></div>
+
+    <!-- ============================================== -->
+    <!-- DEVELOPER/SIMULATOR TESTING FLOATING WIDGET -->
+    <!-- ============================================== -->
+    <div id="dev-widget" class="hidden fixed bottom-4 right-4 z-40 bg-slate-900 text-slate-300 rounded-3xl shadow-xl border border-slate-800 max-w-xs p-4 transition-all duration-300 scale-95 opacity-90 hover:scale-100 hover:opacity-100">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <span class="text-xs font-black tracking-wider text-emerald-400 uppercase flex items-center gap-1.5">
+                <i class="fa-solid fa-flask"></i> Simulator Testing
+            </span>
+            <button onclick="toggleDevWidget()" class="text-slate-500 hover:text-slate-300 text-[10px]"><i class="fa-solid fa-eye-slash"></i> Sembunyikan</button>
+        </div>
+
+        <div class="space-y-3 text-[10px]">
+            <!-- GPS Simulator -->
+            <div>
+                <span class="font-bold text-slate-400 block mb-1">Simulasi Radius GPS:</span>
+                <div class="flex gap-1">
+                    <button id="btn-gps-in" onclick="setSimulatedGPS(true)" class="w-1/2 bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-600/30 text-emerald-400 font-bold py-1 px-2 rounded-lg text-[9px] transition">Di Dalam Radius</button>
+                    <button id="btn-gps-out" onclick="setSimulatedGPS(false)" class="w-1/2 bg-rose-600/20 border border-rose-500/30 hover:bg-rose-600/30 text-rose-400 font-bold py-1 px-2 rounded-lg text-[9px] transition">Di Luar Sekolah</button>
+                </div>
+            </div>
+
+            <!-- Jam Testing -->
+            <div>
+                <span class="font-bold text-slate-400 block mb-1">Simulasi Jam Sistem:</span>
+                <div class="grid grid-cols-2 gap-1">
+                    <button onclick="setSimulatedTime('07:45')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-1 px-1.5 rounded-lg text-[8px] font-semibold">🌅 07:45 (In Pagi)</button>
+                    <button onclick="setSimulatedTime('11:15')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-1 px-1.5 rounded-lg text-[8px] font-semibold">🌅 11:15 (Out Pagi)</button>
+                    <button onclick="setSimulatedTime('13:45')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-1 px-1.5 rounded-lg text-[8px] font-semibold">🌇 13:45 (In Sore)</button>
+                    <button onclick="setSimulatedTime('16:45')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-1 px-1.5 rounded-lg text-[8px] font-semibold">🌇 16:45 (Out Sore)</button>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <button onclick="resetSimulatedTime()" class="text-slate-400 hover:text-white font-bold py-0.5 px-2 bg-slate-800 rounded border border-slate-700 text-[8px] transition">Gunakan Waktu Nyata</button>
+                    <span id="sim-time-indicator" class="text-amber-400 font-mono">Nyata</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="btn-show-dev-widget" onclick="toggleDevWidget(true)" class="fixed bottom-4 right-4 z-40 bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/20 p-2.5 rounded-full shadow-lg transition">
+        <i class="fa-solid fa-flask"></i>
+    </button>
+
+    <!-- ============================================== -->
+    <!-- LOGIKA UTAMA JAVASCRIPT & STATE MANAGEMENT -->
+    <!-- ============================================== -->
+    <script>
+        // --- 1. MOCK DATABASE INITIALIZATION ---
+        const DEFAULT_TEACHERS = [
+            {
+                id: "T1",
+                nip: "198104122005011002",
+                name: "Drs. Budi Santoso",
+                role: "Guru Utama",
+                password: "guru123",
+                photo: "https://placehold.co/120x120/cbd5e1/64748b?text=BS",
+                class_default: "X-A",
+                subject_default: "Fiqih",
+                schedule: {
+                    senin: { class: "X-A", subject: "Fiqih" },
+                    selasa: { class: "X-A", subject: "Ushul Fiqih" },
+                    rabu: { class: "XI MIPA 1", subject: "Kalam" },
+                    kamis: { class: "X-B", subject: "Siroh Nabawiyah" },
+                    sabtu: { class: "XII IPS 1", subject: "Fiqih Dakwah" },
+                    minggu: { class: "XI Keagamaan", subject: "Kaidah Fiqhiyah" }
+                }
+            },
+            {
+                id: "T2",
+                nip: "198511202010032001",
+                name: "Ustadzah Fatimah, S.Pd.I",
+                role: "Guru Madya",
+                password: "guru123",
+                photo: "https://placehold.co/120x120/cbd5e1/64748b?text=UF",
+                class_default: "XI Keagamaan",
+                subject_default: "Bahasa Arab",
+                schedule: {
+                    senin: { class: "XI Keagamaan", subject: "Bahasa Arab" },
+                    selasa: { class: "XII MIPA 2", subject: "Nahwu" },
+                    rabu: { class: "X-A", subject: "Shorof" },
+                    kamis: { class: "XI Keagamaan", subject: "Balaghoh" },
+                    sabtu: { class: "X-C", subject: "Bahasa Arab" },
+                    minggu: { class: "XII Keagamaan", subject: "Adab" }
+                }
+            },
+            {
+                id: "T3",
+                nip: "199208042015021004",
+                name: "Ustadz H. Ahmad Fauzi, Lc",
+                role: "Muda Pratama",
+                password: "guru123",
+                photo: "https://placehold.co/120x120/cbd5e1/64748b?text=AF",
+                class_default: "XII MIPA 1",
+                subject_default: "Tafsir Jalalain",
+                schedule: {
+                    senin: { class: "XII MIPA 1", subject: "Tafsir Jalalain" },
+                    selasa: { class: "XI Keagamaan", subject: "Hadits Bukhari" },
+                    rabu: { class: "XII Keagamaan", subject: "Mustholah Hadits" },
+                    kamis: { class: "X-A", subject: "Tafsir Jalalain" },
+                    sabtu: { class: "XI MIPA 2", subject: "Hadits" },
+                    minggu: { class: "XII MIPA 2", subject: "Tafsir" }
+                }
+            }
+        ];
+
+        const DEFAULT_RECORDS = [
+            {
+                id: "R1",
+                teacher_id: "T1",
+                timestamp: "2026-05-25T07:42:00", // Hari Senin (Terlambat 12 menit)
+                type: "masuk",
+                session: "pagi",
+                class: "X-A",
+                subject: "Fiqih",
+                status: "Hadir jam ke 1&2",
+                late_minutes: 12,
+                location: "Dalam Radius Sekolah",
+                hijri: { day: 8, month: 12, year: 1447, monthName: "Dzulhijjah" }
+            },
+            {
+                id: "R2",
+                teacher_id: "T1",
+                timestamp: "2026-05-25T11:05:00",
+                type: "pulang",
+                session: "pagi",
+                class: "X-A",
+                subject: "Fiqih",
+                status: "Hadir jam ke 1&2",
+                late_minutes: 0,
+                location: "Dalam Radius Sekolah",
+                hijri: { day: 8, month: 12, year: 1447, monthName: "Dzulhijjah" }
+            },
+            {
+                id: "R3",
+                teacher_id: "T2",
+                timestamp: "2026-05-26T07:45:00", // Hari Selasa (Terlambat 15 menit)
+                type: "masuk",
+                session: "pagi",
+                class: "XII MIPA 2",
+                subject: "Nahwu",
+                status: "Hadir jam ke 1&2",
+                late_minutes: 15,
+                location: "Dalam Radius Sekolah",
+                hijri: { day: 9, month: 12, year: 1447, monthName: "Dzulhijjah" }
+            }
+        ];
+
+        // --- 2. GLOBAL STATE ---
+        let teachers = JSON.parse(localStorage.getItem('sadig_teachers')) || DEFAULT_TEACHERS;
+        let records = JSON.parse(localStorage.getItem('sadig_records')) || DEFAULT_RECORDS;
+        let currentUser = JSON.parse(localStorage.getItem('sadig_session')) || null;
+        
+        let loginRole = 'guru'; 
+        let reportTab = 'weekly'; 
+        
+        // Developer Simulator States
+        let simulatedTime = localStorage.getItem('sadig_sim_time') || null; 
+        let simulatedGPS = localStorage.getItem('sadig_sim_gps') !== 'false'; 
+
+        // Cropper JS instances
+        let currentCropper = null;
+        let cropTargetType = 'header'; 
+        let tempGuruFile = null;
+
+        // UI Components
+        let donutChart = null;
+
+        // --- 2.1 BROADCASTCHANNEL FOR MULTI-TAB REALTIME NOTIFICATIONS ---
+        const notifyChannel = new BroadcastChannel('sadig_notifications');
+
+        // Listen for realtime notifications
+        notifyChannel.onmessage = function(event) {
+            const { type, message, sender } = event.data;
+            
+            // If admin is currently logged in, show realtime toast alert & refresh views
+            if (currentUser && currentUser.role === 'ADMIN') {
+                showToast(`🔔 ${message}`, 'success');
+                // Refresh statistics & log list dynamically
+                renderAdminPortal();
+            }
+        };
+
+        // --- 3. HELPER UTILITIES & DATE FUNCTIONS ---
+        const HIJRI_MONTHS = [
+            "Muharram", "Safar", "Rabi'ul Awal", "Rabi'ul Akhir", "Jumadil Ula", "Jumadil Akhira",
+            "Rajab", "Sya'ban", "Ramadhan", "Syawal", "Dzulqa'dah", "Dzulhijjah"
+        ];
+
+        function getJumlahTatapMuka(status) {
+            if (!status) return 0;
+            if (status.includes('1&2')) return 2;
+            if (status.includes('1') || status.includes('2')) return 1;
+            return 0;
+        }
+
+        function getHijriParts(dateObj) {
+            try {
+                const formatter = new Intl.DateTimeFormat('id-ID-u-ca-islamic-umalqura', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    year: 'numeric'
+                });
+                const parts = formatter.formatToParts(dateObj);
+                let hDay = 1, hMonth = 1, hYear = 1447;
+                parts.forEach(p => {
+                    if (p.type === 'day') hDay = parseInt(p.value);
+                    if (p.type === 'month') hMonth = parseInt(p.value);
+                    if (p.type === 'year') hYear = parseInt(p.value);
+                });
+                return {
+                    day: hDay,
+                    month: hMonth,
+                    year: hYear,
+                    monthName: HIJRI_MONTHS[hMonth - 1]
+                };
+            } catch (err) {
+                let jd = Math.floor(dateObj.getTime() / 86400000) + 2440588;
+                let l = jd - 1948440 + 10632;
+                let n = Math.floor((l - 1) / 10631);
+                l = l - 10631 * n + 354;
+                let j = (Math.floor((10985 - l) / 5316)) * (Math.floor((50 * l) / 17719)) + (Math.floor(l / 5670)) * (Math.floor((15238 * j) / 43)) + 29;
+                l = l - (Math.floor((30 - j) / 15)) * (Math.floor((17719 * j) / 50)) - (Math.floor(j / 16)) * (Math.floor((15238 * j) / 43)) + 29;
+                let m = Math.floor((24 * l) / 709);
+                let d = l - Math.floor((709 * m) / 24);
+                let y = 30 * n + j - 30;
+                return {
+                    day: d,
+                    month: m,
+                    year: y,
+                    monthName: HIJRI_MONTHS[m - 1]
+                };
+            }
+        }
+
+        function getFormattedHijriString(dateObj) {
+            const h = getHijriParts(dateObj);
+            return `${h.day} ${h.monthName} ${h.year} H`;
+        }
+
+        function getActiveTime() {
+            const now = new Date();
+            if (simulatedTime) {
+                const [hrs, mins] = simulatedTime.split(':');
+                now.setHours(parseInt(hrs));
+                now.setMinutes(parseInt(mins));
+                now.setSeconds(0);
+            }
+            return now;
+        }
+
+        function updateClock() {
+            const now = getActiveTime();
+            const daysInd = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+            const monthsInd = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            
+            const gregorianStr = `${daysInd[now.getDay()]} , ${now.getDate()} ${monthsInd[now.getMonth()]} ${now.getFullYear()}`;
+            const hijriStr = getFormattedHijriString(now);
+
+            const headerGregorian = document.getElementById('header-gregorian-date');
+            const headerHijri = document.getElementById('header-hijri-date');
+            if (headerGregorian) headerGregorian.textContent = gregorianStr;
+            if (headerHijri) headerHijri.textContent = hijriStr;
+
+            const guruDayIndicator = document.getElementById('guru-today-day');
+            if (guruDayIndicator) {
+                guruDayIndicator.textContent = `${gregorianStr} (${hijriStr}) - ${now.toLocaleTimeString('id-ID')} WIB`;
+            }
+        }
+
+        function hasScheduleToday(teacherId, dateObj) {
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return false;
+
+            const dayNamesEng = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
+            const currentDayEng = dayNamesEng[dateObj.getDay()];
+
+            if (currentDayEng === 'jumat') return false;
+
+            const todaySchedule = teacher.schedule ? teacher.schedule[currentDayEng] : null;
+            return !!(todaySchedule && todaySchedule.class && todaySchedule.subject);
+        }
+
+        // --- 4. EXPLICIT GLOBAL FUNCTIONS (PREVENT REFERENCEERRORS) ---
+        window.switchView = function(viewName) {
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-guru').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+
+            document.getElementById('btn-setting-trigger').classList.add('hidden');
+            document.getElementById('btn-logout').classList.add('hidden');
+
+            if (viewName === 'login') {
+                document.getElementById('view-login').classList.remove('hidden');
+                document.getElementById('session-user-badge').classList.add('hidden');
+                toggleDevWidget(false); // Hide simulator on login page by default
+            } else if (viewName === 'guru') {
+                document.getElementById('view-guru').classList.remove('hidden');
+                document.getElementById('btn-logout').classList.remove('hidden');
+                document.getElementById('session-user-badge').classList.remove('hidden');
+                renderSelfPortal();
+            } else if (viewName === 'admin') {
+                document.getElementById('view-admin').classList.remove('hidden');
+                document.getElementById('btn-setting-trigger').classList.remove('hidden');
+                document.getElementById('btn-logout').classList.remove('hidden');
+                document.getElementById('session-user-badge').classList.remove('hidden');
+                renderAdminPortal();
+            }
+        };
+
+        window.handleLogout = function() {
+            currentUser = null;
+            localStorage.removeItem('sadig_session');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            showToast('Sesi ditutup. Sampai jumpa kembali.', 'success');
+            switchView('login');
+        };
+
+        window.switchLoginTab = function(role) {
+            loginRole = role;
+            const tabGuru = document.getElementById('tab-login-guru');
+            const tabAdmin = document.getElementById('tab-login-admin');
+            const labelUser = document.getElementById('label-username');
+            const inputUser = document.getElementById('login-username');
+
+            if (role === 'guru') {
+                tabGuru.className = "w-1/2 py-3 text-sm font-bold text-center border-b-2 border-emerald-600 text-emerald-600 transition-all duration-200";
+                tabAdmin.className = "w-1/2 py-3 text-sm font-bold text-center border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all duration-200";
+                labelUser.textContent = "NIP GURU";
+                inputUser.placeholder = "Masukkan NIP anda";
+            } else {
+                tabAdmin.className = "w-1/2 py-3 text-sm font-bold text-center border-b-2 border-emerald-600 text-emerald-600 transition-all duration-200";
+                tabGuru.className = "w-1/2 py-3 text-sm font-bold text-center border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all duration-200";
+                labelUser.textContent = "USERNAME ADMIN";
+                inputUser.placeholder = "Username admin";
+            }
+        };
+
+        window.togglePasswordVisibility = function(fieldId) {
+            const input = document.getElementById(fieldId);
+            const icon = document.getElementById('eye-icon-' + fieldId);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.className = "fa-solid fa-eye-slash text-sm";
+            } else {
+                input.type = "password";
+                icon.className = "fa-solid fa-eye text-sm";
+            }
+        };
+
+        window.scrollToSettings = function() {
+            const textElem = document.getElementById('section-admin-settings');
+            if (textElem) textElem.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        // --- 5. SYSTEM NOTIFICATIONS (TOASTS) ---
+        window.showToast = function(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const id = 'toast-' + Date.now();
+            const bgClass = type === 'success' ? 'bg-emerald-600 text-white' : (type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white');
+            const icon = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info');
+
+            const toast = document.createElement('div');
+            toast.id = id;
+            toast.className = `${bgClass} flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border border-white/10 text-xs font-bold transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-sm"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        };
+
+        // --- 6. AUTHENTICATION HANDLER ---
+        window.handleLoginSubmit = function(e) {
+            e.preventDefault();
+            const userVal = document.getElementById('login-username').value.trim();
+            const passVal = document.getElementById('login-password').value;
+
+            if (loginRole === 'admin') {
+                const storedAdminPass = localStorage.getItem('sadig_admin_pw') || 'admin123';
+                if (userVal === 'admin' && passVal === storedAdminPass) {
+                    currentUser = { id: 'admin', name: 'Administrator', role: 'ADMIN', photo: 'https://placehold.co/80x80/047857/ffffff?text=AD' };
+                    localStorage.setItem('sadig_session', JSON.stringify(currentUser));
+                    showToast('Selamat Datang Administrator!', 'success');
+                    switchView('admin');
+                } else {
+                    showToast('Username atau password Admin salah.', 'error');
+                }
+            } else {
+                const foundTeacher = teachers.find(t => t.nip === userVal && t.password === passVal);
+                if (foundTeacher) {
+                    currentUser = { id: foundTeacher.id, name: foundTeacher.name, role: 'GURU', nip: foundTeacher.nip, photo: foundTeacher.photo };
+                    localStorage.setItem('sadig_session', JSON.stringify(currentUser));
+                    showToast(`Ahlan wa Sahlan, ${foundTeacher.name}`, 'success');
+                    switchView('guru');
+                } else {
+                    showToast('NIP atau Password Guru tidak sesuai.', 'error');
+                }
+            }
+            updateIdentityHeader();
+        };
+
+        function updateIdentityHeader() {
+            const badge = document.getElementById('session-user-badge');
+            const pic = document.getElementById('session-user-photo');
+            const name = document.getElementById('session-user-name');
+            const role = document.getElementById('session-user-role');
+
+            if (currentUser) {
+                badge.classList.remove('hidden');
+                pic.src = currentUser.photo || 'https://placehold.co/80x80/cbd5e1/64748b?text=U';
+                name.textContent = currentUser.name;
+                role.textContent = currentUser.role;
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // --- 7. GURU PORTAL LOGIC ---
+        function renderSelfPortal() {
+            if (!currentUser || currentUser.role !== 'GURU') return;
+            
+            const matchingTeacher = teachers.find(t => t.id === currentUser.id);
+            if (matchingTeacher) {
+                document.getElementById('guru-profile-pic').src = matchingTeacher.photo || 'https://placehold.co/120x120/cbd5e1/64748b?text=G';
+                document.getElementById('guru-profile-name').textContent = matchingTeacher.name;
+                document.getElementById('guru-profile-nip').textContent = `NIP: ${matchingTeacher.nip}`;
+            }
+
+            const selectGuru = document.getElementById('absen-guru-id');
+            selectGuru.innerHTML = `<option value="${currentUser.id}">${currentUser.name}</option>`;
+            selectGuru.disabled = true;
+
+            handleAbsenTeacherSelect(currentUser.id);
+            renderSelfHistory();
+        }
+
+        window.handleStatusHadirChange = function(status) {
+            const wrapIzin = document.getElementById('wrapper-izin-lainnya');
+            const inputManual = document.getElementById('absen-izin-manual');
+            const classInput = document.getElementById('absen-kelas');
+            const subjectInput = document.getElementById('absen-mapel');
+
+            classInput.required = true;
+            subjectInput.required = true;
+
+            if (status === 'Izin lainnya (tulis)') {
+                wrapIzin.classList.remove('hidden');
+                inputManual.required = true;
+            } else {
+                wrapIzin.classList.add('hidden');
+                inputManual.required = false;
+            }
+
+            if (status.startsWith('Piket')) {
+                classInput.value = "Ruang Piket";
+                subjectInput.value = "Piket / Pengawasan";
+            } else {
+                const selectGuru = document.getElementById('absen-guru-id');
+                if (selectGuru.value) {
+                    handleAbsenTeacherSelect(selectGuru.value);
+                }
+            }
+        };
+
+        window.handleAbsenTeacherSelect = function(teacherId) {
+            if (!teacherId) return;
+            
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            const now = getActiveTime();
+            const dayNamesEng = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
+            const currentDayEng = dayNamesEng[now.getDay()];
+
+            if (currentDayEng === 'jumat') return;
+
+            let resolvedClass = teacher.class_default;
+            let resolvedSubject = teacher.subject_default;
+
+            if (teacher.schedule && teacher.schedule[currentDayEng]) {
+                const s = teacher.schedule[currentDayEng];
+                if (s.class) resolvedClass = s.class;
+                if (s.subject) resolvedSubject = s.subject;
+            }
+
+            document.getElementById('absen-kelas').value = resolvedClass || '';
+            document.getElementById('absen-mapel').value = resolvedSubject || '';
+        };
+
+        function calculateIntersectionHours(startHrs, startMins, endHrs, endMins) {
+            const startTotal = startHrs * 60 + startMins;
+            const endTotal = endHrs * 60 + endMins;
+
+            let totalIntersectionsMinutes = 0;
+
+            const slots = [
+                { s: 450, e: 540 },  
+                { s: 570, e: 660 },  
+                { s: 810, e: 885 },  
+                { s: 915, e: 990 }   
+            ];
+
+            slots.forEach(slot => {
+                const intersectStart = Math.max(startTotal, slot.s);
+                const intersectEnd = Math.min(endTotal, slot.e);
+                if (intersectStart < intersectEnd) {
+                    totalIntersectionsMinutes += (intersectEnd - intersectStart);
+                }
+            });
+
+            return totalIntersectionsMinutes / 60; 
+        }
+
+        // --- 7.1 TELEGRAM NOTIFICATION SYSTEM ---
+        async function sendTelegramAlert(text) {
+            const enabled = localStorage.getItem('sadig_tg_enable') === 'true';
+            const token = localStorage.getItem('sadig_tg_token');
+            const chatId = localStorage.getItem('sadig_tg_chatid');
+
+            if (!enabled || !token || !chatId) return;
+
+            try {
+                const url = `https://api.telegram.org/bot${token}/sendMessage`;
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: text,
+                        parse_mode: 'HTML'
+                    })
+                });
+            } catch (err) {
+                console.error("Gagal mengirim notifikasi Telegram:", err);
+            }
+        }
+
+        window.handleAbsenSubmit = function(e) {
+            e.preventDefault();
+            const now = getActiveTime();
+
+            // Proteksi Hari Jumat
+            if (now.getDay() === 5) {
+                showToast("Hari Jumat dinonaktifkan dari sistem operasional sekolah.", "error");
+                return;
+            }
+
+            const teacherId = document.getElementById('absen-guru-id').value;
+            if (!teacherId) return;
+
+            const teacherObj = teachers.find(t => t.id === teacherId) || { name: 'Guru' };
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            let session = "";
+            let logStatus = document.getElementById('absen-status-hadir').value;
+            let lateMinutes = 0;
+            let izinReason = "";
+
+            const isIzinMode = logStatus.startsWith("Izin") || logStatus === "Izin lainnya (tulis)";
+            const isPiket = logStatus.startsWith("Piket");
+
+            // PROTEKSI JADWAL: Guru tidak boleh absen jika tidak ada jadwal mengajar hari ini, KECUALI jika Izin atau Piket
+            if (!isIzinMode && !isPiket && !hasScheduleToday(teacherId, now)) {
+                showToast("Absen Ditolak! Anda tidak memiliki jadwal mengajar pada hari ini.", "error");
+                return;
+            }
+
+            // GEOFENCING VALIDATION (Hanya untuk guru yang mengabsen "Hadir" atau "Piket")
+            if (!isIzinMode && !simulatedGPS) {
+                showToast("Presensi Ditolak! Anda terdeteksi berada di luar radius lokasi sekolah.", "error");
+                return;
+            }
+
+            // ATURAN WAKTU DAN SESI PINTAR
+            if (isIzinMode) {
+                // Guru yang Izin dapat absen kapan saja (Tanpa Batasan Jam)
+                session = currentMinutes < 720 ? "pagi" : "sore"; // Batas tengah hari jam 12:00 siang
+                izinReason = logStatus === 'Izin lainnya (tulis)' 
+                    ? (document.getElementById('absen-izin-manual').value || "Izin Lainnya")
+                    : logStatus;
+                logStatus = "Izin";
+            } else {
+                // Guru yang Hadir/Piket wajib mematuhi jam operasional ketat
+                if (currentMinutes >= 450 && currentMinutes < 810) { 
+                    session = "pagi";
+                    if (currentMinutes >= 660) {
+                        logStatus = "Tidak Hadir";
+                    } else {
+                        if (logStatus.startsWith("Hadir") || logStatus.startsWith("Piket")) {
+                            if (currentMinutes >= 450 && currentMinutes <= 535) { 
+                                if (!logStatus.startsWith("Piket")) logStatus = "Hadir 1&2";
+                                if (currentMinutes > 450) lateMinutes = currentMinutes - 450;
+                            } else if (currentMinutes >= 540 && currentMinutes <= 650) { 
+                                if (!logStatus.startsWith("Piket")) logStatus = "Hadir 2";
+                                if (currentMinutes > 570) lateMinutes = currentMinutes - 570;
+                            }
+                        }
+                    }
+                } else if (currentMinutes >= 810 && currentMinutes <= 1440) { 
+                    session = "sore";
+                    if (currentMinutes >= 990) {
+                        logStatus = "Tidak Hadir";
+                    } else {
+                        if (logStatus.startsWith("Hadir") || logStatus.startsWith("Piket")) {
+                            if (currentMinutes >= 810 && currentMinutes <= 885) { 
+                                if (currentMinutes > 810) lateMinutes = currentMinutes - 810;
+                            } else if (currentMinutes > 915 && currentMinutes < 990) { 
+                                lateMinutes = currentMinutes - 915;
+                            }
+                        }
+                    }
+                } else {
+                    showToast("Sesi absensi masuk tidak aktif saat ini.", "error");
+                    return;
+                }
+            }
+
+            const classVal = document.getElementById('absen-kelas').value;
+            const mapelVal = document.getElementById('absen-mapel').value;
+
+            // Validasi duplikasi masuk
+            const dateStr = now.toISOString().split('T')[0];
+            const duplicate = records.find(r => 
+                r.teacher_id === teacherId && 
+                r.timestamp.startsWith(dateStr) && 
+                r.type === 'masuk' && 
+                r.session === session
+            );
+
+            if (duplicate) {
+                showToast("Anda sudah tercatat melakukan Absen MASUK pada sesi ini hari ini.", "error");
+                return;
+            }
+
+            const newRecord = {
+                id: "R-" + Date.now(),
+                teacher_id: teacherId,
+                timestamp: now.toISOString(),
+                type: "masuk",
+                session: session,
+                class: classVal,
+                subject: mapelVal,
+                status: logStatus,
+                izin_reason: izinReason, 
+                late_minutes: lateMinutes,
+                location: simulatedGPS ? "Dalam Radius Sekolah" : "Di Luar Sekolah",
+                hijri: getHijriParts(now)
+            };
+
+            records.push(newRecord);
+            saveDataToLocalStorage();
+            
+            const successMsg = `Absen MASUK ${session.toUpperCase()} berhasil direkam!`;
+            showToast(successMsg, 'success');
+
+            // --- MULTI-TAB BROADCAST & TELEGRAM ALERT ---
+            const alertText = `📝 <b>Absensi Masuk Baru</b>\n\n👤 Nama: <b>${teacherObj.name}</b>\n⏰ Waktu: ${now.toLocaleTimeString('id-ID')} WIB\n📅 Sesi: ${session.toUpperCase()}\n📖 Kelas / Mapel: ${classVal} / ${mapelVal}\n📋 Status: <b>${logStatus}</b>${lateMinutes ? ` (Terlambat ${lateMinutes} Menit)` : ''}${izinReason ? `\n💬 Keterangan: ${izinReason}` : ''}`;
+            
+            notifyChannel.postMessage({
+                type: 'absen_masuk',
+                message: `${teacherObj.name} baru saja absen MASUK (${logStatus})`,
+                sender: currentUser.name
+            });
+            sendTelegramAlert(alertText);
+
+            // Reset form
+            document.getElementById('absen-izin-manual').value = "";
+            if (currentUser.role === 'GURU') {
+                renderSelfPortal();
+            } else {
+                renderAdminPortal();
+            }
+        };
+
+        window.handleAbsenPulangClick = function() {
+            const now = getActiveTime();
+
+            // Proteksi Hari Jumat
+            if (now.getDay() === 5) {
+                showToast("Hari Jumat dinonaktifkan dari sistem operasional sekolah.", "error");
+                return;
+            }
+
+            if (!simulatedGPS) {
+                showToast("Presensi Ditolak! Anda berada di luar radius lokasi sekolah.", "error");
+                return;
+            }
+
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            let session = "";
+
+            if (currentMinutes >= 660 && currentMinutes < 810) { 
+                session = "pagi";
+            } else if (currentMinutes >= 990 && currentMinutes <= 1440) { 
+                session = "sore";
+            } else {
+                showToast("Sesi Absen PULANG belum dibuka (Pagi mulai 11:00, Sore mulai 16:30).", "error");
+                return;
+            }
+
+            const teacherId = document.getElementById('absen-guru-id').value;
+            if (!teacherId) return;
+
+            const currentStatus = document.getElementById('absen-status-hadir').value;
+            const isIzinMode = currentStatus.startsWith("Izin") || currentStatus === "Izin lainnya (tulis)";
+            const isPiket = currentStatus.startsWith("Piket");
+
+            // PROTEKSI JADWAL: Guru tidak boleh absen jika tidak ada jadwal mengajar hari ini, KECUALI jika Izin atau Piket
+            if (!isIzinMode && !isPiket && !hasScheduleToday(teacherId, now)) {
+                showToast("Absen Ditolak! Anda tidak memiliki jadwal mengajar pada hari ini.", "error");
+                return;
+            }
+
+            const teacherObj = teachers.find(t => t.id === teacherId) || { name: 'Guru' };
+            const dateStr = now.toISOString().split('T')[0];
+
+            const hasCheckedIn = records.find(r => 
+                r.teacher_id === teacherId && 
+                r.timestamp.startsWith(dateStr) && 
+                r.type === 'masuk' && 
+                r.session === session
+            );
+
+            if (!hasCheckedIn) {
+                showToast("Gagal! Anda harus melakukan Absen MASUK terlebih dahulu sebelum absen Pulang.", "error");
+                return;
+            }
+
+            const duplicatePulang = records.find(r => 
+                r.teacher_id === teacherId && 
+                r.timestamp.startsWith(dateStr) && 
+                r.type === 'pulang' && 
+                r.session === session
+            );
+
+            if (duplicatePulang) {
+                showToast("Anda sudah merekam data Absen PULANG pada sesi ini.", "error");
+                return;
+            }
+
+            const newRecord = {
+                id: "R-" + Date.now(),
+                teacher_id: teacherId,
+                timestamp: now.toISOString(),
+                type: "pulang",
+                session: session,
+                class: hasCheckedIn.class,
+                subject: hasCheckedIn.subject,
+                status: hasCheckedIn.status,
+                late_minutes: 0,
+                location: "Dalam Radius Sekolah",
+                hijri: getHijriParts(now)
+            };
+
+            records.push(newRecord);
+            saveDataToLocalStorage();
+            
+            showToast(`Absen PULANG ${session.toUpperCase()} terekam!`, 'success');
+
+            // --- MULTI-TAB BROADCAST & TELEGRAM ALERT ---
+            const alertText = `🚪 <b>Absensi Pulang Baru</b>\n\n👤 Nama: <b>${teacherObj.name}</b>\n⏰ Waktu: ${now.toLocaleTimeString('id-ID')} WIB\n📅 Sesi: ${session.toUpperCase()}`;
+            
+            notifyChannel.postMessage({
+                type: 'absen_pulang',
+                message: `${teacherObj.name} baru saja melakukan absen PULANG (${session.toUpperCase()})`,
+                sender: currentUser.name
+            });
+            sendTelegramAlert(alertText);
+
+            if (currentUser.role === 'GURU') {
+                renderSelfPortal();
+            } else {
+                renderAdminPortal();
+            }
+        };
+
+        function renderSelfHistory() {
+            const container = document.getElementById('tbl-history-self');
+            if (!container) return;
+
+            const now = getActiveTime();
+            const dateStr = now.toISOString().split('T')[0];
+
+            const selfTodayLogs = records.filter(r => 
+                r.teacher_id === currentUser.id && 
+                r.timestamp.startsWith(dateStr)
+            ).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            if (selfTodayLogs.length === 0) {
+                container.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">Belum ada aktivitas presensi hari ini.</td></tr>`;
+                return;
+            }
+
+            container.innerHTML = selfTodayLogs.map(r => {
+                const clock = new Date(r.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " WIB";
+                const isHadir = !r.status.startsWith('Izin') && r.status !== 'Tidak Hadir';
+                
+                let statusText = r.status;
+                if (statusText.startsWith('Hadir jam ke 1&2')) statusText = "Hadir 1&2";
+                else if (statusText.startsWith('Hadir jam ke 1')) statusText = "Hadir 1";
+                else if (statusText.startsWith('Hadir jam ke 2')) statusText = "Hadir 2";
+                else if (statusText.startsWith('Izin')) statusText = "Izin";
+                else if (statusText === 'Piket jam ke 1&2') statusText = "Piket 1&2";
+                else if (statusText === 'Piket jam ke 1') statusText = "Piket 1";
+                else if (statusText === 'Piket jam ke 2') statusText = "Piket 2";
+
+                const badgeClass = isHadir 
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+                    : 'bg-rose-100 text-rose-800 border-rose-200';
+
+                let lateBadge = "";
+                if (r.late_minutes && r.late_minutes > 0 && isHadir) {
+                    lateBadge = `<span class="bg-orange-100 text-orange-700 border-orange-200 border text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ml-1.5 whitespace-nowrap"><i class="fa-solid fa-clock mr-1"></i>Terlambat ${r.late_minutes}m</span>`;
+                }
+
+                let detailHtml = `Kelas <strong class="text-slate-700">${r.class || '-'}</strong> | Mapel <strong class="text-slate-700">${r.subject || '-'}</strong>`;
+                if (r.status === 'Izin' && r.izin_reason) {
+                    detailHtml += `<br><span class="text-[10px] text-rose-600 italic font-semibold">Alasan: ${r.izin_reason}</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 text-xs font-bold text-slate-700">${clock}</td>
+                        <td class="p-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">Masuk ${r.session} (${r.type})</td>
+                        <td class="p-3 text-xs text-slate-500">
+                            ${detailHtml}
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <span class="${badgeClass} border text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider">${statusText}</span>
+                                ${lateBadge}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- 8. ADMIN DASHBOARD & CMS LOGIC ---
+        function renderAdminPortal() {
+            if (!currentUser || currentUser.role !== 'ADMIN') return;
+
+            const selectGuru = document.getElementById('absen-guru-id');
+            selectGuru.innerHTML = '<option value="">-- Pilih Guru --</option>' + teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            selectGuru.disabled = false;
+
+            renderDashboardStats();
+            renderLogPresensi();
+            renderTableGuruAdmin();
+            renderWeeklyHoursTable();
+            renderMonthlyHours();
+            renderYearlyHours();
+            renderCMSIdentityFields();
+            loadTelegramConfig(); 
+            renderDailyScheduleBoard();
+        }
+
+        function renderDashboardStats() {
+            const now = getActiveTime();
+            const dateStr = now.toISOString().split('T')[0];
+            const todayLogs = records.filter(r => r.timestamp.startsWith(dateStr));
+
+            let countHadir = 0;
+            let countIzin = 0;
+            let countLate = 0;
+
+            teachers.forEach(t => {
+                const checkedIn = todayLogs.filter(r => r.teacher_id === t.id && r.type === 'masuk');
+                if (checkedIn.length > 0) {
+                    const isAnyIzin = checkedIn.some(r => r.status.startsWith('Izin'));
+                    const isAnyLate = checkedIn.some(r => r.status === 'Tidak Hadir');
+                    if (isAnyIzin) countIzin++;
+                    else if (isAnyLate) countLate++;
+                    else countHadir++;
+                }
+            });
+
+            document.getElementById('stat-hadir-count').textContent = `${countHadir} / ${teachers.length}`;
+            document.getElementById('stat-izin-count').textContent = countIzin;
+            document.getElementById('stat-late-count').textContent = countLate;
+            document.getElementById('stat-total-teachers').textContent = teachers.length;
+
+            updateDonutChart(countHadir, countIzin, countLate);
+        }
+
+        function updateDonutChart(hadir, izin, takHadir) {
+            const ctx = document.getElementById('chart-absensi');
+            if (!ctx) return;
+
+            if (donutChart) donutChart.destroy();
+            const totalBelum = Math.max(0, teachers.length - (hadir + izin + takHadir));
+
+            donutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hadir', 'Izin', 'Tidak Hadir', 'Belum Mengabsen'],
+                    datasets: [{
+                        data: [hadir, izin, takHadir, totalBelum],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e', '#cbd5e1'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '75%'
+                }
+            });
+        }
+
+        window.renderLogPresensi = function() {
+            const container = document.getElementById('tbl-admin-history');
+            if (!container) return;
+
+            const filterType = document.getElementById('filter-log-type').value;
+            const now = getActiveTime();
+            let filtered = [...records];
+
+            if (filterType === 'today') {
+                const dateStr = now.toISOString().split('T')[0];
+                filtered = filtered.filter(r => r.timestamp.startsWith(dateStr));
+            } else if (filterType === 'yesterday') {
+                const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                const dateStr = yesterday.toISOString().split('T')[0];
+                filtered = filtered.filter(r => r.timestamp.startsWith(dateStr));
+            } else if (filterType === 'weekly') {
+                const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                filtered = filtered.filter(r => new Date(r.timestamp) >= oneWeekAgo);
+            } else if (filterType === 'monthly') {
+                const activeHijri = getHijriParts(now);
+                filtered = filtered.filter(r => r.hijri.month === activeHijri.month && r.hijri.year === activeHijri.year);
+            } else if (filterType.startsWith('h-')) {
+                const hMonthNum = parseInt(filterType.split('-')[1]);
+                filtered = filtered.filter(r => r.hijri.month === hMonthNum && r.hijri.year === getHijriParts(now).year);
+            }
+
+            filtered.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            let totalTM = 0;
+            filtered.forEach(r => {
+                totalTM += getJumlahTatapMuka(r.status);
+            });
+            const totalTMContainer = document.getElementById('total-tm-filtered');
+            if (totalTMContainer) {
+                totalTMContainer.textContent = totalTM;
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 text-xs">Belum ada riwayat presensi terekam untuk kategori filter ini.</td></tr>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(r => {
+                const t = teachers.find(g => g.id === r.teacher_id) || { name: 'Dihapus', nip: '-', photo: '' };
+                const timeObj = new Date(r.timestamp);
+                const clock = timeObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " WIB";
+                const isGregorian = timeObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const isHijri = `${r.hijri.day} ${r.hijri.monthName} ${r.hijri.year} H`;
+
+                const isHadir = !r.status.startsWith('Izin') && r.status !== 'Tidak Hadir';
+                
+                let statusText = r.status;
+                if (statusText.startsWith('Hadir jam ke 1&2')) statusText = "Hadir 1&2";
+                else if (statusText.startsWith('Hadir jam ke 1')) statusText = "Hadir 1";
+                else if (statusText.startsWith('Hadir jam ke 2')) statusText = "Hadir 2";
+                else if (statusText.startsWith('Izin')) statusText = "Izin";
+                else if (statusText === 'Piket') statusText = "Piket";
+
+                const badgeClass = isHadir 
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+                    : 'bg-rose-100 text-rose-800 border-rose-200';
+
+                let lateBadge = "";
+                if (r.late_minutes && r.late_minutes > 0 && isHadir) {
+                    lateBadge = `<span class="bg-orange-100 text-orange-700 border-orange-200 border text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ml-1 whitespace-nowrap"><i class="fa-solid fa-clock mr-1"></i>Terlambat ${r.late_minutes}m</span>`;
+                }
+
+                let detailHtml = `Kelas: <strong class="text-slate-700">${r.class || '-'}</strong><br>Mapel: <strong class="text-slate-700">${r.subject || '-'}</strong>`;
+                if (r.status === 'Izin' && r.izin_reason) {
+                    detailHtml += `<br><span class="text-[10px] text-rose-600 italic font-semibold">Alasan: ${r.izin_reason}</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 pr-16">
+                            <div class="flex items-center gap-3">
+                                <img src="${t.photo || 'https://placehold.co/80x80/cbd5e1/64748b?text=...'}" class="w-8 h-8 rounded-full object-cover border">
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800 leading-tight">${t.name}</h5>
+                                    <span class="text-[9px] text-slate-400">NIP: ${t.nip}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-xs font-bold text-slate-800">${clock}</span>
+                                <span class="text-[9px] text-slate-400 leading-none">${isGregorian}</span>
+                                <span class="text-[9px] text-emerald-600 font-extrabold leading-none">${isHijri}</span>
+                            </div>
+                        </td>
+                        <td class="p-3 text-xs text-slate-500">
+                            ${detailHtml}
+                        </td>
+                        <td class="p-3">
+                            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Masuk ${r.session} (${r.type})</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <span class="bg-slate-100 text-slate-700 border border-slate-200 text-[10px] px-2 py-1 rounded-lg font-black font-mono">${getJumlahTatapMuka(r.status)} TM</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex flex-col sm:flex-row items-center justify-center gap-1">
+                                <span class="${badgeClass} border text-[10px] px-2 rounded-full font-black uppercase tracking-wider">${statusText}</span>
+                                ${lateBadge}
+                            </div>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="openEditLogModal('${r.id}')" class="text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 w-9 h-9 sm:w-7 sm:h-7 rounded-xl border border-emerald-100 flex items-center justify-center transition" title="Edit Log">
+                                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                </button>
+                                <button onclick="deleteLogRecord('${r.id}')" class="text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 w-9 h-9 sm:w-7 sm:h-7 rounded-xl border border-rose-100 flex items-center justify-center transition" title="Hapus Log">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.openEditLogModal = function(logId) {
+            const r = records.find(x => x.id === logId);
+            if (!r) return;
+
+            const t = teachers.find(g => g.id === r.teacher_id) || { name: 'Dihapus' };
+
+            document.getElementById('edit-log-id').value = r.id;
+            document.getElementById('edit-log-teacher-name').value = t.name;
+            document.getElementById('edit-log-class').value = r.class;
+            document.getElementById('edit-log-subject').value = r.subject;
+
+            document.getElementById('modal-edit-log').classList.remove('hidden');
+        };
+
+        window.closeEditLogModal = function() {
+            document.getElementById('modal-edit-log').classList.add('hidden');
+        };
+
+        window.handleLogEditSubmit = function(e) {
+            e.preventDefault();
+            const logId = document.getElementById('edit-log-id').value;
+            const r = records.find(x => x.id === logId);
+
+            if (r) {
+                r.class = document.getElementById('edit-log-class').value;
+                r.subject = document.getElementById('edit-log-subject').value;
+                saveDataToLocalStorage();
+                showToast("Log presensi berhasil disunting!", "success");
+                closeEditLogModal();
+                renderAdminPortal();
+            }
+        };
+
+        window.deleteLogRecord = function(logId) {
+            openConfirmDelete("Apakah anda yakin ingin menghapus log riwayat presensi guru ini secara permanen?", () => {
+                records = records.filter(x => x.id !== logId);
+                saveDataToLocalStorage();
+                showToast("Log riwayat presensi berhasil dihapus.", "success");
+                renderAdminPortal();
+            });
+        };
+
+        // --- 9. ACCUMULATE INCOMING HOURS CALCULATION ---
+        window.switchReportTab = function(tabName) {
+            reportTab = tabName;
+            const tabWeekly = document.getElementById('tab-rep-weekly');
+            const tabMonthly = document.getElementById('tab-rep-monthly');
+            const tabYearly = document.getElementById('tab-rep-yearly');
+            
+            const secWeekly = document.getElementById('section-rep-weekly');
+            const secMonthly = document.getElementById('section-rep-monthly');
+            const secYearly = document.getElementById('section-rep-yearly');
+
+            tabWeekly.className = "px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition";
+            tabMonthly.className = "px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition";
+            tabYearly.className = "px-3 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition";
+
+            secWeekly.classList.add('hidden');
+            secMonthly.classList.add('hidden');
+            secYearly.classList.add('hidden');
+
+            if (tabName === 'weekly') {
+                tabWeekly.className = "px-3 py-1 text-xs font-bold rounded-lg bg-white text-emerald-700 shadow-sm transition";
+                secWeekly.classList.remove('hidden');
+                renderWeeklyHoursTable();
+            } else if (tabName === 'monthly') {
+                tabMonthly.className = "px-3 py-1 text-xs font-bold rounded-lg bg-white text-emerald-700 shadow-sm transition";
+                secMonthly.classList.remove('hidden');
+                renderMonthlyHours();
+            } else if (tabName === 'yearly') {
+                tabYearly.className = "px-3 py-1 text-xs font-bold rounded-lg bg-white text-emerald-700 shadow-sm transition";
+                secYearly.classList.remove('hidden');
+                renderYearlyHours();
+            }
+        };
+
+        function getTeacherHoursForDay(teacherId, dateStr) {
+            const logs = records.filter(r => r.teacher_id === teacherId && r.timestamp.startsWith(dateStr));
+            let totalHours = 0;
+
+            const inPagi = logs.find(r => r.type === 'masuk' && r.session === 'pagi');
+            const outPagi = logs.find(r => r.type === 'pulang' && r.session === 'pagi');
+            if (inPagi && outPagi) {
+                const start = new Date(inPagi.timestamp);
+                const end = new Date(outPagi.timestamp);
+                totalHours += calculateIntersectionHours(start.getHours(), start.getMinutes(), end.getHours(), end.getMinutes());
+            }
+
+            const inSore = logs.find(r => r.type === 'masuk' && r.session === 'sore');
+            const outSore = logs.find(r => r.type === 'pulang' && r.session === 'sore');
+            if (inSore && outSore) {
+                const start = new Date(inSore.timestamp);
+                const end = new Date(outSore.timestamp);
+                totalHours += calculateIntersectionHours(start.getHours(), start.getMinutes(), end.getHours(), end.getMinutes());
+            }
+
+            return Math.max(0, totalHours); 
+        }
+
+        function getStartOfWeek(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
+            return new Date(date.setDate(diff));
+        }
+
+        function renderWeeklyHoursTable() {
+            const container = document.getElementById('tbl-weekly-hours');
+            if (!container) return;
+
+            const now = getActiveTime();
+            const startOfWeek = getStartOfWeek(now);
+            const daysIndices = [1, 2, 3, 4, 6, 0]; 
+
+            container.innerHTML = teachers.map(t => {
+                let rowHours = [];
+                let totalWeeklyDecimal = 0;
+
+                daysIndices.forEach(idx => {
+                    const tempDate = new Date(startOfWeek);
+                    const offset = idx === 0 ? 6 : idx - 1;
+                    tempDate.setDate(startOfWeek.getDate() + offset);
+                    
+                    const dateStr = tempDate.toISOString().split('T')[0];
+                    const hr = getTeacherHoursForDay(t.id, dateStr);
+                    rowHours.push(hr);
+                    totalWeeklyDecimal += hr;
+                });
+
+                const dailyCols = rowHours.map(h => {
+                    if (h === 0) return `<td class="p-3 text-center text-slate-300 font-medium">-</td>`;
+                    return `<td class="p-3 text-center text-slate-700 font-extrabold font-mono">${h.toFixed(1)}j</td>`;
+                }).join('');
+
+                let colorClass = "text-rose-600";
+                if (totalWeeklyDecimal >= 35) colorClass = "text-emerald-600";
+                else if (totalWeeklyDecimal >= 15) colorClass = "text-amber-500";
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 font-bold text-slate-800">${t.name}</td>
+                        ${dailyCols}
+                        <td class="p-3 text-center font-black font-mono ${colorClass} bg-slate-50/80 rounded-r-xl">${totalWeeklyDecimal.toFixed(1)} Jam</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderMonthlyHours() {
+            const container = document.getElementById('wrapper-monthly-hours');
+            if (!container) return;
+
+            const now = getActiveTime();
+            const activeHijri = getHijriParts(now);
+            document.getElementById('monthly-period-label').textContent = `Periode Hijriyah: 1 s/d Akhir ${activeHijri.monthName} ${activeHijri.year} H`;
+
+            const targetLogs = records.filter(r => r.hijri.month === activeHijri.month && r.hijri.year === activeHijri.year);
+
+            container.innerHTML = teachers.map(t => {
+                const loggedDates = [...new Set(targetLogs.filter(r => r.teacher_id === t.id).map(r => r.timestamp.split('T')[0]))];
+                
+                let totalMonthlyHours = 0;
+                loggedDates.forEach(dStr => {
+                    totalMonthlyHours += getTeacherHoursForDay(t.id, dStr);
+                });
+
+                const percent = Math.min(100, (totalMonthlyHours / 140) * 100);
+                
+                let barColor = "bg-rose-500";
+                if (percent >= 80) barColor = "bg-emerald-500";
+                else if (percent >= 40) barColor = "bg-amber-500";
+
+                return `
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${t.photo || 'https://placehold.co/80x80/cbd5e1/64748b?text=...'}" class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500">
+                            <div>
+                                <h5 class="text-xs font-black text-slate-800 leading-tight">${t.name}</h5>
+                                <span class="text-[9px] text-slate-400 font-semibold uppercase">Total Kehadiran Valid: <strong class="text-emerald-700">${loggedDates.length} Hari</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="flex-grow max-w-md w-full">
+                            <div class="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                                <span>Pencapaian: <strong class="text-slate-800">${totalMonthlyHours.toFixed(1)} / 140 Jam</strong></span>
+                                <span>${percent.toFixed(0)}%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="${barColor} h-full transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderYearlyHours() {
+            const container = document.getElementById('tbl-yearly-hours');
+            if (!container) return;
+
+            const now = getActiveTime();
+            const activeHijri = getHijriParts(now);
+            document.getElementById('yearly-hijri-label').textContent = activeHijri.year;
+
+            const targetYearLogs = records.filter(r => r.hijri.year === activeHijri.year);
+
+            container.innerHTML = teachers.map(t => {
+                let totalYearlyHours = 0;
+                let monthCellsHtml = "";
+
+                for (let m = 1; m <= 12; m++) {
+                    const monthLogs = targetYearLogs.filter(r => r.teacher_id === t.id && r.hijri.month === m);
+                    const uniqueDates = [...new Set(monthLogs.map(r => r.timestamp.split('T')[0]))];
+                    
+                    let monthHours = 0;
+                    uniqueDates.forEach(dStr => {
+                        monthHours += getTeacherHoursForDay(t.id, dStr);
+                    });
+
+                    totalYearlyHours += monthHours;
+
+                    if (monthHours === 0) {
+                        monthCellsHtml += `<td class="p-3 text-center text-slate-300 font-medium">-</td>`;
+                    } else {
+                        monthCellsHtml += `<td class="p-3 text-center text-slate-700 font-semibold font-mono text-xs">${monthHours.toFixed(1)}j</td>`;
+                    }
+                }
+
+                let totalColorClass = "text-rose-600 bg-rose-50/50";
+                if (totalYearlyHours >= 500) totalColorClass = "text-emerald-700 bg-emerald-50/50";
+                else if (totalYearlyHours >= 200) totalColorClass = "text-amber-600 bg-amber-50/50";
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-100">${t.name}</td>
+                        ${monthCellsHtml}
+                        <td class="p-3 text-center font-black font-mono ${totalColorClass} rounded-r-xl">${totalYearlyHours.toFixed(1)} Jam</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- 9.1 PAPAN JADWAL MENGAJAR HARI INI (REAKTIF AKTIF) ---
+        function renderDailyScheduleBoard() {
+            const daysEng = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
+            const daysInd = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+            
+            const now = getActiveTime();
+            const dayIdx = now.getDay();
+            const currentDayEng = daysEng[dayIdx];
+            const currentDayInd = daysInd[dayIdx];
+
+            // Tampilkan label hari berjalan
+            const dayLabel = document.getElementById('current-schedule-day-label');
+            if (dayLabel) {
+                dayLabel.textContent = currentDayInd;
+            }
+
+            const container = document.getElementById('schedule-board-today');
+            if (!container) return;
+
+            // Proteksi Hari Jumat
+            if (currentDayEng === 'jumat') {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <i class="fa-solid fa-mug-hot text-3xl text-slate-300 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-500">Hari Jumat Libur Operasional KBM</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Tidak ada jadwal mengajar yang terjadwal aktif hari ini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Cari guru yang memiliki jadwal mengajar aktif pada hari berjalan
+            const scheduledTeachers = teachers.filter(t => {
+                return t.schedule && t.schedule[currentDayEng] && t.schedule[currentDayEng].class && t.schedule[currentDayEng].subject;
+            });
+
+            if (scheduledTeachers.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <i class="fa-solid fa-calendar-xmark text-3xl text-slate-300 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-500">Tidak Ada Jadwal Mengajar Terdaftar</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Belum ada guru yang dijadwalkan mengajar pada hari ${currentDayInd}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = scheduledTeachers.map(t => {
+                const sch = t.schedule[currentDayEng];
+                return `
+                    <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3.5 shadow-sm hover:border-emerald-300 transition-all duration-200">
+                        <img src="${t.photo || 'https://placehold.co/80x80/cbd5e1/64748b?text=...'}" class="w-11 h-11 rounded-full object-cover border-2 border-white flex-shrink-0 shadow">
+                        <div class="min-w-0 flex-grow">
+                            <h6 class="text-xs font-black text-slate-800 truncate leading-tight">${t.name}</h6>
+                            <p class="text-[9px] text-slate-400 truncate mt-0.5">${t.role}</p>
+                            <div class="flex items-center gap-1.5 mt-2 bg-emerald-50 text-emerald-800 px-2 py-1 rounded-lg w-fit max-w-full">
+                                <i class="fa-solid fa-chalkboard-user text-[9px]"></i>
+                                <span class="text-[9px] font-black truncate">${sch.class} : ${sch.subject}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- 10. CRUD DATA GURU ADMIN & INLINE PASSWORD EDIT ---
+        window.renderTableGuruAdmin = function() {
+            const container = document.getElementById('tbl-database-guru');
+            if (!container) return;
+
+            if (teachers.length === 0) {
+                container.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">Belum ada data guru terdaftar.</td></tr>`;
+                return;
+            }
+
+            container.innerHTML = teachers.map(t => {
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3">
+                            <div class="flex items-center gap-3">
+                                <img src="${t.photo || 'https://placehold.co/80x80/cbd5e1/64748b?text=...'}" class="w-10 h-10 rounded-full object-cover border shadow-sm">
+                                <h5 class="text-xs font-bold text-slate-800 leading-tight">${t.name}</h5>
+                            </div>
+                        </td>
+                        <td class="p-3 text-xs font-mono text-slate-500">${t.nip}</td>
+                        <td class="p-3 text-xs text-slate-500">${t.role}</td>
+                        <td class="p-3 text-xs text-slate-500">
+                            Kelas: <strong class="text-slate-700">${t.class_default || '-'}</strong><br>Mapel: <strong class="text-slate-700">${t.subject_default || '-'}</strong>
+                        </td>
+                        <td class="p-3">
+                            <input type="text" value="${t.password}" onchange="updateTeacherPasswordInline('${t.id}', this.value)" class="w-28 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg py-1 px-2.5 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="openModalGuru('${t.id}')" class="text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 w-9 h-9 sm:w-7 sm:h-7 rounded-xl border border-emerald-100 flex items-center justify-center transition" title="Edit Profil">
+                                    <i class="fa-solid fa-user-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteTeacher('${t.id}')" class="text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 w-9 h-9 sm:w-7 sm:h-7 rounded-xl border border-rose-100 flex items-center justify-center transition" title="Hapus Guru">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.updateTeacherPasswordInline = function(teacherId, newPassword) {
+            const p = newPassword.trim();
+            const teacher = teachers.find(t => t.id === teacherId);
+
+            if (!teacher) return;
+
+            if (p.length < 4) {
+                showToast("Kata sandi akses terlalu pendek! (Minimal 4 karakter).", "error");
+                renderTableGuruAdmin(); 
+                return;
+            }
+
+            teacher.password = p;
+            saveDataToLocalStorage();
+            showToast(`Password guru ${teacher.name} diperbarui!`, "success");
+            renderTableGuruAdmin();
+        };
+
+        window.openModalGuru = function(teacherId = null) {
+            const form = document.getElementById('form-guru');
+            form.reset();
+            
+            document.getElementById('form-guru-pic-preview').classList.add('hidden');
+            document.getElementById('form-guru-pic-fallback').classList.remove('hidden');
+            tempGuruFile = null;
+
+            if (teacherId) {
+                document.getElementById('modal-guru-title').textContent = "Edit Data Profil Guru";
+                const t = teachers.find(g => g.id === teacherId);
+                if (t) {
+                    document.getElementById('form-guru-id').value = t.id;
+                    document.getElementById('form-guru-name').value = t.name;
+                    document.getElementById('form-guru-nip').value = t.nip;
+                    document.getElementById('form-guru-role').value = t.role;
+                    document.getElementById('form-guru-password').value = t.password;
+                    document.getElementById('form-guru-class-default').value = t.class_default || "";
+                    document.getElementById('form-guru-subject-default').value = t.subject_default || "";
+
+                    if (t.photo) {
+                        const img = document.getElementById('form-guru-pic-preview');
+                        img.src = t.photo;
+                        img.classList.remove('hidden');
+                        document.getElementById('form-guru-pic-fallback').classList.add('hidden');
+                    }
+
+                    const days = ["senin", "selasa", "rabu", "kamis", "sabtu", "minggu"];
+                    days.forEach(day => {
+                        const s = t.schedule && t.schedule[day] ? t.schedule[day] : { class: "", subject: "" };
+                        document.getElementById(`sch-${day}-class`).value = s.class || "";
+                        document.getElementById(`sch-${day}-subject`).value = s.subject || "";
+                    });
+                }
+            } else {
+                document.getElementById('modal-guru-title').textContent = "Registrasi Guru Baru";
+                document.getElementById('form-guru-id').value = "";
+            }
+
+            document.getElementById('modal-guru').classList.remove('hidden');
+        };
+
+        window.closeModalGuru = function() {
+            document.getElementById('modal-guru').classList.add('hidden');
+        };
+
+        window.handleGuruPhotoUpload = function(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                const validFormats = ['image/png', 'image/jpeg', 'image/jpg'];
+                if (!validFormats.includes(file.type)) {
+                    showToast("Format gambar salah! Gunakan format PNG atau JPG.", "error");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 120;
+                        canvas.height = 120;
+                        const ctx = canvas.getContext('2d');
+                        
+                        let sourceX = 0;
+                        let sourceY = 0;
+                        let sourceWidth = img.width;
+                        let sourceHeight = img.height;
+                        const aspect = img.width / img.height;
+
+                        if (aspect > 1) {
+                            sourceWidth = img.height;
+                            sourceX = (img.width - img.height) / 2;
+                        } else if (aspect < 1) {
+                            sourceHeight = img.width;
+                            sourceY = (img.height - img.width) / 2;
+                        }
+
+                        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, 120, 120);
+                        tempGuruFile = canvas.toDataURL('image/jpeg', 0.85);
+                        
+                        const preview = document.getElementById('form-guru-pic-preview');
+                        preview.src = tempGuruFile;
+                        preview.classList.remove('hidden');
+                        document.getElementById('form-guru-pic-fallback').classList.add('hidden');
+                        
+                        showToast("Foto guru berhasil dimuat dan dipotong proporsional!", "success");
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.handleGuruSubmit = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-guru-id').value;
+            const name = document.getElementById('form-guru-name').value;
+            const nip = document.getElementById('form-guru-nip').value;
+            const role = document.getElementById('form-guru-role').value;
+            const pass = document.getElementById('form-guru-password').value;
+            const classDef = document.getElementById('form-guru-class-default').value;
+            const subjDef = document.getElementById('form-guru-subject-default').value;
+
+            const days = ["senin", "selasa", "rabu", "kamis", "sabtu", "minggu"];
+            const scheduleObj = {};
+            days.forEach(day => {
+                scheduleObj[day] = {
+                    class: document.getElementById(`sch-${day}-class`).value,
+                    subject: document.getElementById(`sch-${day}-subject`).value
+                };
+            });
+
+            if (id) {
+                const t = teachers.find(g => g.id === id);
+                if (t) {
+                    t.name = name;
+                    t.nip = nip;
+                    t.role = role;
+                    t.password = pass;
+                    t.class_default = classDef;
+                    t.subject_default = subjDef;
+                    t.schedule = scheduleObj;
+                    if (tempGuruFile) t.photo = tempGuruFile;
+                }
+                showToast("Profil data guru berhasil diperbarui!", "success");
+            } else {
+                const newT = {
+                    id: "T-" + Date.now(),
+                    name: name,
+                    nip: nip,
+                    role: role,
+                    password: pass,
+                    class_default: classDef,
+                    subject_default: subjDef,
+                    photo: tempGuruFile || `https://placehold.co/120x120/cbd5e1/64748b?text=${name.charAt(0)}`,
+                    schedule: scheduleObj
+                };
+                teachers.push(newT);
+                showToast("Pendaftaran guru baru sukses direkam!", "success");
+            }
+
+            saveDataToLocalStorage();
+            closeModalGuru();
+            renderAdminPortal();
+        };
+
+        window.deleteTeacher = function(id) {
+            const t = teachers.find(g => g.id === id);
+            if (!t) return;
+
+            openConfirmDelete(`Apakah Anda yakin ingin menghapus data guru "${t.name}" beserta seluruh riwayat absensinya?`, () => {
+                teachers = teachers.filter(g => g.id !== id);
+                records = records.filter(r => r.teacher_id !== id);
+                saveDataToLocalStorage();
+                showToast("Data guru berhasil dihapus dari sistem.", "success");
+                renderAdminPortal();
+            });
+        };
+
+        // --- 11. CUSTOM CONFIRM DIALOG UTILITIES ---
+        let confirmAction = null;
+        window.openConfirmDelete = function(message, onConfirm) {
+            document.getElementById('confirm-delete-message').textContent = message;
+            confirmAction = onConfirm;
+            document.getElementById('modal-confirm-delete').classList.remove('hidden');
+
+            document.getElementById('btn-confirm-delete-action').onclick = function() {
+                if (confirmAction) confirmAction();
+                closeConfirmDelete();
+            };
+        };
+
+        window.closeConfirmDelete = function() {
+            document.getElementById('modal-confirm-delete').classList.add('hidden');
+            confirmAction = null;
+        };
+
+        // --- 12. LOGO MANIPULATION (CROPPER.JS IMPLEMENTATION) ---
+        window.handleLogoUpload = function(input, type) {
+            cropTargetType = type;
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                const validFormats = ['image/png', 'image/jpeg', 'image/jpg'];
+                if (!validFormats.includes(file.type)) {
+                    showToast("Format logo salah! Gunakan format PNG atau JPG.", "error");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const targetImg = document.getElementById('crop-image-target');
+                    targetImg.src = e.target.result;
+
+                    document.getElementById('modal-crop-logo').classList.remove('hidden');
+
+                    if (currentCropper) currentCropper.destroy();
+                    
+                    setTimeout(() => {
+                        currentCropper = new Cropper(targetImg, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 1,
+                            restore: false,
+                            guides: false,
+                            center: false,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: false,
+                            toggleDragModeOnDblclick: false
+                        });
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.closeCropModal = function() {
+            document.getElementById('modal-crop-logo').classList.add('hidden');
+            if (currentCropper) currentCropper.destroy();
+        };
+
+        window.executeCrop = function() {
+            if (!currentCropper) return;
+
+            const canvas = currentCropper.getCroppedCanvas({
+                width: 300,
+                height: 300
+            });
+
+            const base64Image = canvas.toDataURL('image/png');
+
+            if (cropTargetType === 'header') {
+                localStorage.setItem('sadig_logo', base64Image);
+                showToast("Logo header utama diperbarui secara permanen!", "success");
+            } else {
+                localStorage.setItem('sadig_login_logo', base64Image);
+                showToast("Logo halaman log in berhasil disesuaikan!", "success");
+            }
+
+            closeCropModal();
+            updateAppLogos();
+        };
+
+        window.resetLogo = function(type) {
+            if (type === 'header') {
+                localStorage.removeItem('sadig_logo');
+                showToast("Logo header dikembalikan ke standar.", "success");
+            } else {
+                localStorage.removeItem('sadig_login_logo');
+                showToast("Logo halaman log in di-reset.", "success");
+            }
+            updateAppLogos();
+        };
+
+        function updateAppLogos() {
+            const logoHeader = localStorage.getItem('sadig_logo');
+            const logoLogin = localStorage.getItem('sadig_login_logo');
+
+            const imgH = document.getElementById('app-logo');
+            const fallH = document.getElementById('app-logo-fallback');
+            const contH = document.getElementById('app-logo-container');
+            const previewH = document.getElementById('setting-logo-header-preview');
+            const previewFallH = document.getElementById('setting-logo-header-preview-fallback');
+            const previewContH = document.getElementById('setting-logo-header-preview-container');
+
+            if (logoHeader) {
+                imgH.src = logoHeader;
+                imgH.classList.remove('hidden');
+                fallH.classList.add('hidden');
+                contH.className = "w-[45px] h-[45px] rounded-full border-2 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden p-0";
+
+                if (previewH) {
+                    previewH.src = logoHeader;
+                    previewH.classList.remove('hidden');
+                    previewFallH.classList.add('hidden');
+                    previewContH.className = "w-20 h-20 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden p-0 mb-3 shadow";
+                }
+            } else {
+                imgH.classList.add('hidden');
+                fallH.classList.remove('hidden');
+                contH.className = "w-[45px] h-[45px] rounded-full border-2 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden p-2";
+
+                if (previewH) {
+                    previewH.classList.add('hidden');
+                    previewFallH.classList.remove('hidden');
+                    previewContH.className = "w-20 h-20 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden p-4 mb-3 shadow";
+                }
+            }
+
+            const imgL = document.getElementById('login-logo');
+            const fallL = document.getElementById('login-logo-fallback');
+            const contL = document.getElementById('login-logo-container');
+            const previewL = document.getElementById('setting-logo-login-preview');
+            const previewFallL = document.getElementById('setting-logo-login-preview-fallback');
+            const previewContL = document.getElementById('setting-logo-login-preview-container');
+
+            if (logoLogin) {
+                imgL.src = logoLogin;
+                imgL.classList.remove('hidden');
+                fallL.classList.add('hidden');
+                contL.className = "w-[74px] h-[74px] rounded-full bg-white/15 border-2 border-white/20 flex items-center justify-center overflow-hidden p-0";
+
+                if (previewL) {
+                    previewL.src = logoLogin;
+                    previewL.classList.remove('hidden');
+                    previewFallL.classList.add('hidden');
+                    previewContL.className = "w-20 h-20 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden p-0 mb-3 shadow";
+                }
+            } else {
+                imgL.classList.add('hidden');
+                fallL.classList.remove('hidden');
+                contL.className = "w-[74px] h-[74px] rounded-full bg-white/15 border-2 border-white/20 flex items-center justify-center overflow-hidden p-4";
+
+                if (previewL) {
+                    previewL.classList.add('hidden');
+                    previewFallL.classList.remove('hidden');
+                    previewContL.className = "w-20 h-20 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden p-4 mb-3 shadow";
+                }
+            }
+        }
+
+        // --- 13. CMS INSTANSI PENAMAAN IDENTITY ---
+        function renderCMSIdentityFields() {
+            const currentTitle = localStorage.getItem('sadig_title') || "Sadig";
+            const currentSubtitle = localStorage.getItem('sadig_subtitle') || "Pondok Pesantren Tholabuddin";
+
+            document.getElementById('setting-app-title').value = currentTitle;
+            document.getElementById('setting-app-subtitle').value = currentSubtitle;
+
+            document.getElementById('app-title-text').textContent = currentTitle;
+            document.getElementById('app-subtitle-text').textContent = currentSubtitle;
+        }
+
+        window.saveCMSIdentity = function() {
+            const title = document.getElementById('setting-app-title').value.trim();
+            const subtitle = document.getElementById('setting-app-subtitle').value.trim();
+
+            if (!title || !subtitle) {
+                showToast("Pengisian judul atau sub-judul tidak boleh kosong!", "error");
+                return;
+            }
+
+            localStorage.setItem('sadig_title', title);
+            localStorage.setItem('sadig_subtitle', subtitle);
+            showToast("Nama instansi sekolah berhasil disimpan!", "success");
+
+            renderCMSIdentityFields();
+        };
+
+        // --- 14. ADMIN PASSWORD UPDATE CMS ---
+        window.handleSettingsPasswordAdmin = function(e) {
+            e.preventDefault();
+            const currentStoredPass = localStorage.getItem('sadig_admin_pw') || 'admin123';
+            
+            const oldP = document.getElementById('setting-admin-pw-old').value;
+            const newP = document.getElementById('setting-admin-pw-new').value;
+            const confP = document.getElementById('setting-admin-pw-confirm').value;
+
+            if (oldP !== currentStoredPass) {
+                showToast("Password lama anda salah!", "error");
+                return;
+            }
+
+            if (newP.length < 4) {
+                showToast("Password baru minimal 4 karakter!", "error");
+                return;
+            }
+
+            if (newP !== confP) {
+                showToast("Konfirmasi password baru tidak cocok!", "error");
+                return;
+            }
+
+            localStorage.setItem('sadig_admin_pw', newP);
+            showToast("Password administrator berhasil diubah!", "success");
+            
+            document.getElementById('form-settings-pw-admin').reset();
+        };
+
+        // --- 14.1 TELEGRAM BOT INTEGRATION SETTINGS HANDLER ---
+        window.toggleTelegramStatus = function() {
+            const enableChk = document.getElementById('setting-telegram-enable').checked;
+            const wrapper = document.getElementById('wrapper-telegram-config');
+            if (enableChk) {
+                wrapper.classList.remove('hidden');
+            } else {
+                wrapper.classList.add('hidden');
+                localStorage.setItem('sadig_tg_enable', 'false');
+                showToast("Notifikasi Telegram dinonaktifkan.", "success");
+            }
+        };
+
+        window.saveTelegramConfig = function() {
+            const token = document.getElementById('setting-telegram-token').value.trim();
+            const chatId = document.getElementById('setting-telegram-chatid').value.trim();
+
+            if (!token || !chatId) {
+                showToast("Token dan Chat ID Telegram wajib diisi!", "error");
+                return;
+            }
+
+            localStorage.setItem('sadig_tg_enable', 'true');
+            localStorage.setItem('sadig_tg_token', token);
+            localStorage.setItem('sadig_tg_chatid', chatId);
+            showToast("Konfigurasi Telegram berhasil disimpan & diaktifkan!", "success");
+        };
+
+        window.testTelegramNotification = function() {
+            const token = document.getElementById('setting-telegram-token').value.trim();
+            const chatId = document.getElementById('setting-telegram-chatid').value.trim();
+
+            if (!token || !chatId) {
+                showToast("Token dan Chat ID wajib diisi untuk uji coba!", "error");
+                return;
+            }
+
+            showToast("Mengirim pesan uji coba...", "info");
+
+            const url = `https://api.telegram.org/bot${token}/sendMessage`;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: "🔔 <b>SADIG Test Connection</b>\n\nKoneksi bot Telegram ke sistem absensi Pondok Pesantren Tholabuddin berhasil terhubung secara real-time! 👍",
+                    parse_mode: 'HTML'
+                })
+            })
+            .then(res => {
+                if (res.ok) {
+                    showToast("Pesan uji coba berhasil terkirim ke Telegram Anda!", "success");
+                } else {
+                    showToast("Gagal mengirim! Periksa kembali Token dan Chat ID Anda.", "error");
+                }
+            })
+            .catch(err => {
+                showToast("Terjadi kesalahan jaringan/koneksi.", "error");
+            });
+        };
+
+        function loadTelegramConfig() {
+            const enabled = localStorage.getItem('sadig_tg_enable') === 'true';
+            const token = localStorage.getItem('sadig_tg_token') || '';
+            const chatId = localStorage.getItem('sadig_tg_chatid') || '';
+
+            const checkbox = document.getElementById('setting-telegram-enable');
+            const tokenInput = document.getElementById('setting-telegram-token');
+            const chatidInput = document.getElementById('setting-telegram-chatid');
+            const wrapper = document.getElementById('wrapper-telegram-config');
+
+            if (checkbox) checkbox.checked = enabled;
+            if (tokenInput) tokenInput.value = token;
+            if (chatidInput) chatidInput.value = chatId;
+
+            if (wrapper) {
+                if (enabled) wrapper.classList.remove('hidden');
+                else wrapper.classList.add('hidden');
+            }
+        }
+
+        // --- 15. EKSPOR DATA KE CSV (EXCEL FRIENDLY) ---
+        window.exportToCSV = function() {
+            if (records.length === 0) {
+                showToast("Tidak ada data log riwayat yang bisa diekspor.", "error");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID Presensi,NIP,Nama Guru,Waktu Log,Hari Gregorian,Tanggal Hijriyah,Sesi Kerja,Kelas,Mata Pelajaran,Status,Menit Terlambat,Lokasi\n";
+
+            records.forEach(r => {
+                const t = teachers.find(x => x.id === r.teacher_id) || { name: 'Dihapus', nip: '-' };
+                const timeObj = new Date(r.timestamp);
+                const clock = timeObj.toLocaleTimeString('id-ID');
+                const isGreg = timeObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                const isHijr = `${r.hijri.day} ${r.hijri.monthName} ${r.hijri.year} H`;
+
+                const row = [
+                    r.id,
+                    t.nip,
+                    `"${t.name.replace(/"/g, '""')}"`,
+                    clock,
+                    `"${isGreg}"`,
+                    `"${isHijr}"`,
+                    r.session,
+                    `"${r.class}"`,
+                    `"${r.subject}"`,
+                    r.status,
+                    r.late_minutes || 0,
+                    r.location
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Laporan_Absensi_SADIG_Pesantren_Tholabuddin_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("Unduhan laporan log sukses!", "success");
+        };
+
+        // --- 16. DEVELOPER TESTING TOOLS (SIMULATOR) ---
+        window.setSimulatedGPS = function(status) {
+            simulatedGPS = status;
+            localStorage.setItem('sadig_sim_gps', status);
+
+            const btnIn = document.getElementById('btn-gps-in');
+            const btnOut = document.getElementById('btn-gps-out');
+
+            if (status) {
+                btnIn.className = "w-1/2 bg-emerald-600 border border-emerald-500 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded-lg text-[9px] transition shadow";
+                btnOut.className = "w-1/2 bg-rose-600/20 border border-rose-500/30 hover:bg-rose-600/30 text-rose-400 font-bold py-1 px-2 rounded-lg text-[9px] transition";
+                showToast("Simulasi GPS: Anda berada di DALAM Sekolah.", "success");
+            } else {
+                btnOut.className = "w-1/2 bg-rose-600 border border-rose-500 hover:bg-rose-700 text-white font-bold py-1 px-2 rounded-lg text-[9px] transition shadow";
+                btnIn.className = "w-1/2 bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-600/30 text-emerald-400 font-bold py-1 px-2 rounded-lg text-[9px] transition";
+                showToast("Simulasi GPS: Anda berada di LUAR radius sekolah.", "error");
+            }
+        };
+
+        window.setSimulatedTime = function(timeStr) {
+            simulatedTime = timeStr;
+            localStorage.setItem('sadig_sim_time', timeStr);
+            document.getElementById('sim-time-indicator').textContent = timeStr + " WIB";
+            updateClock();
+            showToast(`Simulasi Waktu diubah menjadi: ${timeStr} WIB`, "success");
+
+            if (currentUser && currentUser.role === 'GURU') {
+                handleAbsenTeacherSelect(currentUser.id);
+            } else if (currentUser && currentUser.role === 'ADMIN') {
+                renderDailyScheduleBoard(); // Update the dynamic schedule board for the simulated day immediately
+            }
+        };
+
+        window.resetSimulatedTime = function() {
+            simulatedTime = null;
+            localStorage.removeItem('sadig_sim_time');
+            document.getElementById('sim-time-indicator').textContent = "Nyata";
+            updateClock();
+            showToast("Waktu dikembalikan sesuai jam asli komputer.", "success");
+
+            if (currentUser && currentUser.role === 'GURU') {
+                handleAbsenTeacherSelect(currentUser.id);
+            } else if (currentUser && currentUser.role === 'ADMIN') {
+                renderDailyScheduleBoard(); // Restore to real-time day schedule
+            }
+        };
+
+        window.toggleDevWidget = function(show = false) {
+            const dev = document.getElementById('dev-widget');
+            const btnShow = document.getElementById('btn-show-dev-widget');
+
+            if (show) {
+                dev.classList.remove('hidden');
+                btnShow.classList.add('hidden');
+            } else {
+                dev.classList.add('hidden');
+                btnShow.classList.remove('hidden');
+            }
+        };
+
+        // --- 17. PERSISTENCE STORAGE ---
+        function saveDataToLocalStorage() {
+            localStorage.setItem('sadig_teachers', JSON.stringify(teachers));
+            localStorage.setItem('sadig_records', JSON.stringify(records));
+        }
+
+        // --- 18. SYSTEM RUNTIME BOOTSTRAPPING (ONLOAD) ---
+        window.onload = function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            updateAppLogos();
+            setSimulatedGPS(simulatedGPS);
+
+            if (simulatedTime) {
+                document.getElementById('sim-time-indicator').textContent = simulatedTime + " WIB";
+            }
+
+            if (currentUser) {
+                updateIdentityHeader();
+                if (currentUser.role === 'ADMIN') {
+                    switchView('admin');
+                } else {
+                    switchView('guru');
+                }
+            } else {
+                switchView('login');
+            }
+        };
+    </script>
+</body>
+</html>
